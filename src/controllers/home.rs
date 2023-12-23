@@ -8,3 +8,4 @@ async fn current() -> Result<Json<HomeResponse>> {
 pub fn routes() -> Routes {
     Routes::new().add("/", get(current))
 }
+

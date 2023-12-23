@@ -41,3 +41,19 @@ impl Hooks for App {
 
     fn register_tasks(_tasks: &mut Tasks) {}
 }
+
+// To build
+// - Load in config
+// - Make requests based on config
+
+
+// as:
+// call: 
+// with: 
+//     body:
+//     headers:
+// expectBack:
+//     statusCode: 
+//     body:
+//     headers:
+// schedule:
