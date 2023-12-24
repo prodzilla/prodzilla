@@ -6,7 +6,7 @@ mod schedule;
 use axum::{
     routing::{get},Router,
 };
-use http_probe::check_endpoint;
+use schedule::schedule_probes;
 
 use crate::config::load_config;
 
@@ -33,9 +33,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn start_monitoring() -> Result<(), Box<dyn std::error::Error>> {
     let config = load_config(PRODZILLA_YAML).await?;
-    // loop through probes
-    check_endpoint(&config.probes[0]).await;
-
+    schedule_probes(config.probes).await?;
     Ok(())
 }
 

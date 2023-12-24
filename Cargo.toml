@@ -15,3 +15,4 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 reqwest = { version = "0.11" }
 lazy_static = "1.4.0"
+futures = "0.3.29"

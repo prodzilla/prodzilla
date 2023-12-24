@@ -17,6 +17,7 @@ use serde::{Serialize, Deserialize};
 pub struct Probe {
     pub name: String,
     pub url: String,
+    pub http_method: String,
     pub with: Option<ProbeInputParameters>,
     pub expect_back: Option<ProbeExpectParameters>,
     pub schedule: ProbeScheduleParameters,

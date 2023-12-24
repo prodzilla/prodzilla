@@ -1,9 +1,15 @@
 probes:
   - name: Example A
     url: http://codingupastorm.dev
-    expectBack:
-      statusCode: "200"
+    expect_back:
+      status_code: "200"
     schedule:
       initial_delay: 5
       interval: 10
-    
+  - name: Example B
+    url: http://google.com
+    expect_back:
+      status_code: "200"
+    schedule:
+      initial_delay: 2
+      interval: 6
