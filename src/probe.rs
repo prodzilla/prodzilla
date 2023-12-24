@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 // as:
 // call: 
 // with: 
@@ -8,29 +10,38 @@
 //     body:
 //     headers:
 // schedule:
+use serde::{Serialize, Deserialize};
 
 
-
-
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Probe {
     pub name: String,
     pub url: String,
-    pub with: ProbeInputParameters,
-    pub expectBack: ProbeExpectParameters,
+    pub with: Option<ProbeInputParameters>,
+    pub expect_back: Option<ProbeExpectParameters>,
     pub schedule: ProbeScheduleParameters,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProbeInputParameters {
-    pub headers: HashMap<String, String>,
-    pub body: String,
+    #[serde(default)]
+    pub headers: Option<HashMap<String, String>>,
+    pub body: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProbeExpectParameters {
-    pub statusCode: String,
+    pub status_code: String,
     pub body: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProbeScheduleParameters {
-    pub initialDelay: String,
+    pub initial_delay: String,
     pub period: String,
+}
+
+// datetime, statusCode, result
+pub struct ProbeResult{
+    pub success: bool,
 }

@@ -1,19 +1,21 @@
 mod config;
 mod probe;
+mod http_probe;
 
 
 use axum::{
     routing::{get},Router,
 };
+use http_probe::check_endpoint;
 
 use crate::config::load_config;
 
 const PRODZILLA_YAML: &str = "prodzilla.yml";
 
 #[tokio::main]
-async fn main() {
-
-    let config = load_config(PRODZILLA_YAML);
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    
+    start_monitoring().await?;
 
     tracing_subscriber::fmt::init();
 
@@ -25,6 +27,16 @@ async fn main() {
         .unwrap();
     tracing::debug!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
+
+    Ok(())
+}
+
+async fn start_monitoring() -> Result<(), Box<dyn std::error::Error>> {
+    let config = load_config(PRODZILLA_YAML).await?;
+    // loop through probes
+    check_endpoint(config.probes[0]);
+
+    Ok(())
 }
 
 async fn root() -> &'static str {
@@ -32,5 +44,6 @@ async fn root() -> &'static str {
 }
 
 // todo
-// - load config in
+// start calling the probe endpoints
 // - do we need tracing?
+// - shall we fix the capitalization of initialDelay

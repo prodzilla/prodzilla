@@ -4,6 +4,6 @@ probes:
     expectBack:
       statusCode: "200"
     schedule:
-      initialDelay: 5
+      initial_delay: 5
       period: 300
     

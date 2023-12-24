@@ -1,3 +1,10 @@
+use std::path::PathBuf;
+
+use serde::{Serialize, Deserialize};
+
+use crate::probe::Probe;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     #[serde(default)]
     pub probes: Vec<Probe>,
