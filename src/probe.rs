@@ -17,7 +17,7 @@ pub struct Probe {
     pub url: String,
     pub with: ProbeInputParameters,
     pub expectBack: ProbeExpectParameters,
-    pub schedule: 
+    pub schedule: ProbeScheduleParameters,
 }
 
 pub struct ProbeInputParameters {

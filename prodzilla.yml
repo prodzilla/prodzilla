@@ -1,0 +1,9 @@
+probes:
+  - name: Example A
+    url: http://codingupastorm.dev
+    expectBack:
+      statusCode: "200"
+    schedule:
+      initialDelay: 5
+      period: 300
+    
