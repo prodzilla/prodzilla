@@ -37,8 +37,8 @@ pub struct ProbeExpectParameters {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProbeScheduleParameters {
-    pub initial_delay: String,
-    pub period: String,
+    pub initial_delay: u32,
+    pub interval: u32,
 }
 
 // datetime, statusCode, result

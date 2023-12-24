@@ -1,7 +1,7 @@
 mod config;
 mod probe;
 mod http_probe;
-
+mod schedule;
 
 use axum::{
     routing::{get},Router,
@@ -34,7 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 async fn start_monitoring() -> Result<(), Box<dyn std::error::Error>> {
     let config = load_config(PRODZILLA_YAML).await?;
     // loop through probes
-    check_endpoint(config.probes[0]);
+    check_endpoint(&config.probes[0]).await;
 
     Ok(())
 }

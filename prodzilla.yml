@@ -5,5 +5,5 @@ probes:
       statusCode: "200"
     schedule:
       initial_delay: 5
-      period: 300
+      interval: 10
     
