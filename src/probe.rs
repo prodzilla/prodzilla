@@ -33,7 +33,7 @@ pub struct ProbeInputParameters {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProbeExpectParameters {
     pub status_code: String,
-    pub body: String,
+    pub body: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

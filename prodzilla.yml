@@ -1,6 +1,6 @@
 probes:
   - name: Example A
-    url: http://codingupastorm.dev
+    url: http://facebook.com
     expect_back:
       status_code: "200"
     schedule:
