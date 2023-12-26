@@ -1,6 +1,7 @@
 probes:
   - name: Example A
     url: http://facebook.com
+    http_method: GET
     expect_back:
       status_code: "200"
     schedule:
@@ -8,6 +9,7 @@ probes:
       interval: 10
   - name: Example B
     url: http://google.com
+    http_method: GET
     expect_back:
       status_code: "200"
     schedule:
