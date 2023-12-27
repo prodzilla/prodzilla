@@ -1,0 +1,62 @@
+stories:
+  - name: Create cardholder card
+    steps:
+      - name: Create cardholder
+        as: CardholderUser
+        url: https://api.airwallex.com/api/v1/issuing/cardholders/create
+        http_method: POST
+        with: CreateCardholderRequest
+        expect_back: ValidCreateCardholderResponse
+
+      - name: Create card
+        as: CardholderUser
+        url: https://api.airwallex.com/api/v1/issuing/cards/create
+        http_method: POST
+        with: CreateCardRequest
+        expect_back: ValidCreateCardResponse
+
+      - name: Get card in Admin panel
+        as: CardholderUser
+        url: https://api.airwallex.com/api/v1/issuing/cards/create
+        http_method: POST
+        with: CreateCardRequest
+        expect_back: ValidCreateCardResponse
+
+    schedule: EveryMinute10sDelay
+
+
+# need to be able to execute more complex requests to get token
+auth:
+  CardholderUser:
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+  AdminUser:
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkJpbGJvIEJhZ2dpbnMiLCJpYXQiOjE1MTYyMzkwMjJ9.oxw3ahUNcp2PFIxkyNYEqVYjITbvtOMHBYyh-lPb7aM
+
+# need to be able to add parameters into requests
+requests:
+  CreateCardholderRequest:
+    body: '{"address": {"city": "Hong Kong","country": "HK","line1": "38 Chengtu Rd","postcode": "999077","state" : "Hong Kong"},"email": "test@example.com","individual": {"date_of_birth": "1982-11-02","express_consent_obtained": "yes","identification": {"country": "US","expiry_date": "2030-08-28","number": "001238243","type": "ID_CARD"},"name": {"first_name": "Test","last_name": "Name"}},"mobile_number": "(257) 563-7401'
+  CreateCardRequest:
+    body: '{"authorization_controls": {"allowed_transaction_count": "MULTIPLE",transaction_limits": {"currency": "USD","limits": [{"amount": 20000,"interval": "ALL_TIME"}]}},"created_by": "John Smith","form_factor": "VIRTUAL","issue_to": "ORGANISATION","primary_contact_details": {"email": "test@example.com","full_name": "John Smith","mobile_number": "123456789"},"request_id": "d1064ar2-8ff0-4f9a-a5be-6d34dea8dc60"}'
+
+expectations:
+  ValidCreateCardholderResponse:
+    status_code: 200
+    fields:
+      cardholder_id: 
+        exists: true
+        format: uuid
+      status:
+        exists: true
+        value: 'READY'
+  ValidCreateCardResponse:
+    status_code: 200
+    fields:
+      card_id: 
+        exists: true
+        format: uuid
+
+schedules:
+  EveryMinute10sDelay:
+    initial_delay: 10
+    interval: 60
