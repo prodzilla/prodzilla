@@ -4,7 +4,7 @@ A synthetic monitoring tool built in Rust.
 
 ## Usage
 
-The application parses the `prodzilla.yml` file to generate a list of probes executed on their given schedule:
+The application parses the `prodzilla.yml` file to generate a list of probes executed on a given schedule:
 
 ```yml
 probes:
@@ -70,9 +70,9 @@ probes:
     - Standalone easy-to-install image
     - Github Actions integration to trigger tests / use as smoke tests
 
-## Long-term yml definition 
+## Future prodzilla.yml definition 
 
-We'd love to get to a point where the yml file looks something like this. Importantly, that it represents a view of the intended behaviour of the services that any human / stakeholder can read and understand.
+I'd love to get to a point where the yml file represents a view of the intended behaviour of the services that any human / stakeholder can read and understand.
 
 A full view of this is available in `prodzilla-future.yml`.
 
