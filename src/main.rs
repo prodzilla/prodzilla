@@ -46,3 +46,7 @@ async fn root() -> &'static str {
 // - do we need tracing?
 // - validation of config fields / use enums for http GET 
 // - shall we fix the capitalization of initialDelay
+
+// plan for today
+// - make post bodies and probe results work
+// test posts etc using some wiremock type thing

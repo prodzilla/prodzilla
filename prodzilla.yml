@@ -1,6 +1,6 @@
 probes:
   - name: Example A
-    url: http://facebook.com
+    url: https://github.com/codingupastorm/doesntexist
     http_method: GET
     expect_back:
       status_code: "200"

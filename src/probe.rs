@@ -46,3 +46,4 @@ pub struct ProbeScheduleParameters {
 pub struct ProbeResult{
     pub success: bool,
 }
+
