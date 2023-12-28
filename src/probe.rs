@@ -1,15 +1,4 @@
 use std::collections::HashMap;
-
-// as:
-// call: 
-// with: 
-//     body:
-//     headers:
-// expectBack:
-//     statusCode: 
-//     body:
-//     headers:
-// schedule:
 use serde::{Serialize, Deserialize};
 
 
@@ -19,7 +8,7 @@ pub struct Probe {
     pub url: String,
     pub http_method: String,
     pub with: Option<ProbeInputParameters>,
-    pub expect_back: Option<ProbeExpectParameters>,
+    pub expectations: Option<Vec<ProbeExpectation>>,
     pub schedule: ProbeScheduleParameters,
 }
 
@@ -31,10 +20,25 @@ pub struct ProbeInputParameters {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProbeExpectParameters {
-    pub status_code: String,
-    pub body: Option<String>,
+pub struct ProbeExpectation {
+    pub field: ExpectField,
+    pub operation: ExpectOperation,
+    pub value: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ExpectOperation {
+    Equals,
+    IsOneOf,
+    Contains
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ExpectField {
+    Body,
+    StatusCode
+}
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProbeScheduleParameters {

@@ -2,16 +2,28 @@ probes:
   - name: Example A
     url: https://github.com/codingupastorm/doesntexist
     http_method: GET
-    expect_back:
-      status_code: "200"
+    expectations:
+      - field: StatusCode
+        operation: Equals 
+        value: "200"
     schedule:
       initial_delay: 5
       interval: 10
   - name: Example B
     url: http://google.com
     http_method: GET
-    expect_back:
-      status_code: "200"
     schedule:
       initial_delay: 2
       interval: 6
+
+
+    # expectations:
+    #   - field: status_code
+    #     operation: equals 
+    #     value: "200"
+    #   - field: status_code
+    #     operation: is_one_of 
+    #     value: ["200", "404"]
+    #   - field: body
+    #     operation: contains
+    #     value: "test"

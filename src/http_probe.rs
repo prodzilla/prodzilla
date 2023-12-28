@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use crate::probe::Probe;
-use crate::probe::ProbeExpectParameters;
+use crate::probe::ProbeExpectation;
 use crate::probe::ProbeInputParameters;
 use crate::probe::ProbeResult;
 use crate::probe::ProbeScheduleParameters;
@@ -27,7 +27,7 @@ pub async fn check_endpoint(probe: &Probe) -> Result<ProbeResult, Box<dyn std::e
 
     match response {
         Ok(res) => {
-            match &probe.expect_back {
+            match &probe.expectations {
                 Some(expect_back) => {
                     let validation_result = validate_response(&expect_back, &res);
                     if validation_result {
@@ -45,7 +45,7 @@ pub async fn check_endpoint(probe: &Probe) -> Result<ProbeResult, Box<dyn std::e
 
         }
         Err(e) => {
-            match &probe.expect_back {
+            match &probe.expectations {
                 Some(expect_back) => {
                     let validation_result = validate_error_response(&expect_back, &e);
                     println!("Error whilst executing probe {}, but as expected.", &probe.name);
@@ -80,27 +80,28 @@ fn build_request(probe: &Probe) -> Result<RequestBuilder, Box<dyn std::error::Er
 }
 
 
-fn validate_response(expect: &ProbeExpectParameters, response: &Response) -> bool {
+fn validate_response(expect: &Vec<ProbeExpectation>, response: &Response) -> bool {
     // todo be explicit about what failed
     return false;
 }
 
-fn validate_error_response(expect: &ProbeExpectParameters, error: &Error) -> bool {
+fn validate_error_response(expect: &Vec<ProbeExpectation>, error: &Error) -> bool {
     // todo be explicit about what failed
     return false;
 }
 
 use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
+use wiremock::matchers::{method, path, body_string};
 
 #[tokio::test]
-async fn test_reqwest_with_mock_server() {
-    // Start a local mock server
+async fn test_requests_hit_downstream_with_all_data() {
     let mock_server = MockServer::start().await;
 
-    // Mock a response for a specific path and method
+    let body = "test body";
+
     Mock::given(method("GET"))
         .and(path("/test"))
+        .and(body_string("poo".to_string()))
         .respond_with(ResponseTemplate::new(200)) // You can change the status code here
         .mount(&mock_server)
         .await;
@@ -110,24 +111,17 @@ async fn test_reqwest_with_mock_server() {
         url: format!("{}/test", mock_server.uri()),
         http_method: "GET".to_string(),
         with: Some(ProbeInputParameters{
-            body: Some("test body".to_string()),
-            headers: Some(HashMap<String,String>{})
+            body: Some(body.to_string()),
+            headers: Some(HashMap::new())
         }),
-        expect_back: None(),
+        expectations: None,
         schedule: ProbeScheduleParameters{
-
+            initial_delay: 0,
+            interval: 0
         }
     };
 
-    let probeResult = check_endpoint(&probe).await;
+    let probe_result = check_endpoint(&probe).await;
 
-    // Use reqwest to send a request to the mock server
-    let client = reqwest::Client::new();
-    let res = client.get(format!("{}/test", mock_server.uri()))
-        .send()
-        .await
-        .unwrap();
-
-    // Assert the status code or other response details
-    assert_eq!(res.status().as_u16(), 200);
+    assert_eq!(probe_result.unwrap().success, true);
 }
