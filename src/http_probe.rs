@@ -6,6 +6,8 @@ use crate::probe::ProbeExpectation;
 use crate::probe::ProbeInputParameters;
 use crate::probe::ProbeResult;
 use crate::probe::ProbeScheduleParameters;
+use crate::probe::ExpectField;
+use crate::probe::ExpectOperation;
 use lazy_static::lazy_static;
 use reqwest::Error;
 use reqwest::RequestBuilder;
@@ -79,17 +81,6 @@ fn build_request(probe: &Probe) -> Result<RequestBuilder, Box<dyn std::error::Er
     return Ok(request);
 }
 
-
-fn validate_response(expect: &Vec<ProbeExpectation>, response: &Response) -> bool {
-    // todo be explicit about what failed
-    return false;
-}
-
-fn validate_error_response(expect: &Vec<ProbeExpectation>, error: &Error) -> bool {
-    // todo be explicit about what failed
-    return false;
-}
-
 use wiremock::{MockServer, Mock, ResponseTemplate};
 use wiremock::matchers::{method, path, body_string};
 
@@ -114,7 +105,11 @@ async fn test_requests_hit_downstream_with_all_data() {
             body: Some(body.to_string()),
             headers: Some(HashMap::new())
         }),
-        expectations: None,
+        expectations: Some(vec![ProbeExpectation{
+            field: ExpectField::StatusCode,
+            operation: ExpectOperation::Equals,
+            value: "200".to_string()
+        }]),
         schedule: ProbeScheduleParameters{
             initial_delay: 0,
             interval: 0
@@ -125,3 +120,5 @@ async fn test_requests_hit_downstream_with_all_data() {
 
     assert_eq!(probe_result.unwrap().success, true);
 }
+
+// Continue from here! Make test expect say a 200 in the expectations then ensure that it works
