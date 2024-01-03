@@ -94,8 +94,8 @@ async fn test_requests_hit_downstream_with_all_data() {
 
     Mock::given(method("GET"))
         .and(path("/test"))
-        .and(body_string("poo".to_string()))
-        .respond_with(ResponseTemplate::new(200)) // You can change the status code here
+        .and(body_string(body.to_string()))
+        .respond_with(ResponseTemplate::new(200))
         .mount(&mock_server)
         .await;
 
@@ -123,4 +123,4 @@ async fn test_requests_hit_downstream_with_all_data() {
     assert_eq!(probe_result.unwrap().success, true);
 }
 
-// Continue from here! Make test expect say a 200 in the expectations then ensure that it works
+// todo: test what happens with different response codes, timeouts etc

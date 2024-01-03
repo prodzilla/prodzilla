@@ -50,16 +50,16 @@ stories:
 - Protocol Support
     - HTTP / HTTPS Calls
         - GET :white_check_mark:
-        - POST :bricks:
-        - PUT
-        - PATCH
+        - POST :white_check_mark:
+        - PUT :white_check_mark:
+        - PATCH :white_check_mark:
     - Grpc
 - Request Construction
     - Add headers :bricks:
-    - Add body :bricks:
+    - Add body :white_check_mark:
 - Response Validation
-    - Status code
-    - Response body
+    - Status code :white_check_mark:
+    - Response body :white_check_mark:
     - Specific fields
 - Authentication
     - Bearer Tokens

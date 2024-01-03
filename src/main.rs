@@ -43,8 +43,8 @@ async fn root() -> &'static str {
 }
 
 // todo
-// start calling the probe endpoints
 // check what happens when there are errors, does it shut down
+// update readme with expectations format
 // - do we need tracing?
 // - validation of config fields / use enums for http GET 
 // - shall we fix the capitalization of initialDelay
