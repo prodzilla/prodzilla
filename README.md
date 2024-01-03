@@ -1,6 +1,10 @@
-# Prodzilla
+# Prodzilla 🦖
 
-A synthetic monitoring tool built in Rust.
+Prodzilla is a modern synthetic monitoring tool built in Rust. It's focused on surfacing whether existing behaviour in production is as expected in a human-readable format, so that even customers or stakeholders can contribute to system verification. 
+
+A SaaS option will be available in the future. More at [prodzilla.io](https://prodzilla.io/).
+
+It's currently in active development.
 
 ## Usage
 
