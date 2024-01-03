@@ -10,8 +10,9 @@ use reqwest::Error;
 use reqwest::RequestBuilder;
 use reqwest::Response;
 
+// todo be explicit about what failed
+
 pub async fn validate_response(expect: &Vec<ProbeExpectation>, response: Response) -> Result<bool, Box<dyn std::error::Error>> {
-    // todo be explicit about what failed
     let status_code: String = response.status().as_str().into();
     let body = response.text().await?;
     for expectation in expect {
@@ -34,7 +35,28 @@ pub async fn validate_response(expect: &Vec<ProbeExpectation>, response: Respons
 }
 
 pub fn validate_error_response(expect: &Vec<ProbeExpectation>, error: &Error) -> bool {
-    // todo be explicit about what failed
+    for expectation in expect {
+        let expectation_result: bool;
+        match expectation.field {
+            ExpectField::Body => {
+                expectation_result = false;
+            }
+            ExpectField::StatusCode => {
+                if let Some(status_code) = error.status() {
+                    let status_code_str: String = status_code.as_str().into();
+                    expectation_result = validate_expectation(&expectation.operation, &expectation.value, &status_code_str);
+                } else {
+                    // This might mean some error on our side??
+                    println!("Error on request, got no status code.");
+                    expectation_result = false;
+                }
+            }
+        }
+
+        if !expectation_result {
+            return false
+        }
+    }
     return false;
 }
 
