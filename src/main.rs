@@ -44,10 +44,7 @@ async fn root() -> &'static str {
 
 // todo
 // start calling the probe endpoints
+// check what happens when there are errors, does it shut down
 // - do we need tracing?
 // - validation of config fields / use enums for http GET 
 // - shall we fix the capitalization of initialDelay
-
-// plan for today
-// - make post bodies and probe results work
-// test posts etc using some wiremock type thing

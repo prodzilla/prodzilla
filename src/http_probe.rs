@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::str::FromStr;
 
+use crate::expectations::validate_error_response;
+use crate::expectations::validate_response;
 use crate::probe::Probe;
 use crate::probe::ProbeExpectation;
 use crate::probe::ProbeInputParameters;
@@ -31,7 +33,7 @@ pub async fn check_endpoint(probe: &Probe) -> Result<ProbeResult, Box<dyn std::e
         Ok(res) => {
             match &probe.expectations {
                 Some(expect_back) => {
-                    let validation_result = validate_response(&expect_back, &res);
+                    let validation_result = validate_response(&expect_back, res).await?;
                     if validation_result {
                         println!("Successful response for {}, as expected.", &probe.name);
                     } else {
