@@ -20,21 +20,21 @@ stories:
     steps:
       - name: Create cardholder
         as: CardholderUser
-        url: https://api.airwallex.com/api/v1/issuing/cardholders/create
+        url: https://api.cardwebsite.com/cardholders/create
         http_method: POST
         with: CreateCardholderRequest
         expect_back: ValidCreateCardholderResponse
 
       - name: Create card
         as: CardholderUser
-        url: https://api.airwallex.com/api/v1/issuing/cards/create
+        url: https://api.cardwebsite.com/cards/create
         http_method: POST
         with: CreateCardRequest
         expect_back: ValidCreateCardResponse
 
       - name: Get card in Admin panel
         as: CardholderUser
-        url: https://api.airwallex.com/api/v1/issuing/cards/create
+        url: https://api.cardwebsite.com/cards/create
         http_method: POST
         with: CreateCardRequest
         expect_back: ValidCreateCardResponse
