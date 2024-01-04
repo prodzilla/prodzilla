@@ -39,12 +39,17 @@ async fn start_monitoring() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn root() -> &'static str {
-    "Hello, World!"
+    "Roar!"
 }
 
-// todo
-// check what happens when there is an error when building a request for example
-// update readme with expectations format
+#[cfg(test)]
+mod test_utils;
+
+
+// TODO:
+// - integration test that starts app up and verifies it's running correctly (for now just run to see it's working, even with 404s)
+// - check what happens when there is an error when building a request - or any other request 
+// - update readme with expectations format
 // - do we need tracing?
 // - validation of config fields / use enums for http GET 
-// - shall we fix the capitalization of initialDelay
+// - fix 

@@ -1,0 +1,54 @@
+#[cfg(test)]
+pub mod test_utils {
+    use std::collections::HashMap;
+
+    use reqwest::StatusCode;
+
+    use crate::probe::{Probe, ProbeInputParameters, ProbeExpectation, ExpectField, ExpectOperation, ProbeScheduleParameters};
+
+    pub fn probe_get_with_expected_status(status_code: StatusCode, url: String, body: String) -> Probe {
+        return Probe{
+            name: "Test probe".to_string(),
+            url: url,
+            http_method: "GET".to_string(),
+            with: Some(ProbeInputParameters{
+                body: Some(body),
+                headers: Some(HashMap::new())
+            }),
+            expectations: Some(vec![ProbeExpectation{
+                field: ExpectField::StatusCode,
+                operation: ExpectOperation::Equals,
+                value: status_code.as_str().into()
+            }]),
+            schedule: ProbeScheduleParameters{
+                initial_delay: 0,
+                interval: 0
+            }
+        };
+    }
+
+    pub fn probe_post_with_expected_body(expected_body: String, url: String, body: String) -> Probe {
+        return Probe{
+            name: "Test probe".to_string(),
+            url: url,
+            http_method: "POST".to_string(),
+            with: Some(ProbeInputParameters{
+                body: Some(body),
+                headers: Some(HashMap::new())
+            }),
+            expectations: Some(vec![ProbeExpectation{
+                field: ExpectField::StatusCode,
+                operation: ExpectOperation::Equals,
+                value: "200".to_owned(),
+            },ProbeExpectation{
+                field: ExpectField::Body,
+                operation: ExpectOperation::Equals,
+                value: expected_body,
+            }]),
+            schedule: ProbeScheduleParameters{
+                initial_delay: 0,
+                interval: 0
+            }
+        };
+    }
+}

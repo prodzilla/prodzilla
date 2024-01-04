@@ -16,36 +16,35 @@ lazy_static! {
 }
 
 pub async fn check_endpoint(probe: &Probe) -> Result<ProbeResult, Box<dyn std::error::Error>> {
-
     let request = build_request(probe)?;
-    let response = request
-        .timeout(Duration::from_secs(10))
-        .send().await;
+    let response = request.timeout(Duration::from_secs(10)).send().await;
 
     // TODO: Fix this dirty block below
 
     match response {
-        Ok(res) => {
-            match &probe.expectations {
-                Some(expect_back) => {
-                    let validation_result = validate_response(&expect_back, res).await?;
-                    if validation_result {
-                        println!("Successful response for {}, as expected.", &probe.name);
-                    } else {
-                        println!("Successful response for {}, not as expected!", &probe.name);
-                    }
-                    return Ok(ProbeResult{success: validation_result});
+        Ok(res) => match &probe.expectations {
+            Some(expect_back) => {
+                let validation_result = validate_response(&expect_back, res).await?;
+                if validation_result {
+                    println!("Successful response for {}, as expected.", &probe.name);
+                } else {
+                    println!("Successful response for {}, not as expected!", &probe.name);
                 }
-                None => {
-                    println!("Successfully probed {}, no expectation so success is true.", &probe.name);
-                    return Ok(ProbeResult{success: true});
-                }
+                return Ok(ProbeResult {
+                    success: validation_result,
+                });
             }
-
-        }
+            None => {
+                println!(
+                    "Successfully probed {}, no expectation so success is true.",
+                    &probe.name
+                );
+                return Ok(ProbeResult { success: true });
+            }
+        },
         Err(e) => {
             println!("Error whilst executing probe: {}", e);
-            return Ok(ProbeResult{success: false});
+            return Ok(ProbeResult { success: false });
         }
     }
 }
@@ -69,142 +68,104 @@ fn build_request(probe: &Probe) -> Result<RequestBuilder, Box<dyn std::error::Er
     return Ok(request);
 }
 
-use reqwest::StatusCode;
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path, body_string};
-use crate::http_probe::test_utils::probe_get_with_expected_status;
-
-use self::test_utils::probe_post_with_expected_body;
-
-#[tokio::test]
-async fn test_requests_get_200() {
-    let mock_server = MockServer::start().await;
-
-    Mock::given(method("GET"))
-        .and(path("/test"))
-        .respond_with(ResponseTemplate::new(200))
-        .mount(&mock_server)
-        .await;
-
-    
-    let probe = probe_get_with_expected_status(StatusCode::OK, format!("{}/test", mock_server.uri()), "".to_owned());
-    let probe_result = check_endpoint(&probe).await;
-
-    assert_eq!(probe_result.unwrap().success, true);
-}
-
-#[tokio::test]
-async fn test_requests_get_timeout() {
-    let mock_server = MockServer::start().await;
-
-    let body = "test body";
-
-    Mock::given(method("GET"))
-        .and(path("/test"))
-        .respond_with(ResponseTemplate::new(404)
-        .set_delay(Duration::from_secs(30)))
-        .mount(&mock_server)
-        .await;
-
-    let probe = probe_get_with_expected_status(StatusCode::NOT_FOUND, format!("{}/test", mock_server.uri()), body.to_string());
-    let probe_result = check_endpoint(&probe).await;
-
-    assert_eq!(probe_result.unwrap().success, false);
-}
-
-#[tokio::test]
-async fn test_requests_get_404() {
-    let mock_server = MockServer::start().await;
-
-    let body = "test body";
-
-    Mock::given(method("GET"))
-        .and(path("/test"))
-        .and(body_string(body.to_string()))
-        .respond_with(ResponseTemplate::new(404))
-        .mount(&mock_server)
-        .await;
-
-    let probe = probe_get_with_expected_status(StatusCode::NOT_FOUND, format!("{}/test", mock_server.uri()), body.to_string());
-    let probe_result = check_endpoint(&probe).await;
-
-    assert_eq!(probe_result.unwrap().success, true);
-}
-
-#[tokio::test]
-async fn test_requests_post_200_with_body() {
-    let mock_server = MockServer::start().await;
-
-    let request_body = "request body";
-    let expected_body = "{\"expected_body_field\":\"test\"}";
-
-    Mock::given(method("POST"))
-        .and(path("/test"))
-        .and(body_string(request_body.to_string()))
-        .respond_with(ResponseTemplate::new(200).set_body_string(expected_body.to_owned()))
-        .mount(&mock_server)
-        .await;
-
-    
-    let probe = probe_post_with_expected_body(expected_body.to_owned(), format!("{}/test", mock_server.uri()), request_body.to_owned());
-    let probe_result = check_endpoint(&probe).await;
-
-    assert_eq!(probe_result.unwrap().success, true);
-}
-
 #[cfg(test)]
-mod test_utils {
-    use std::collections::HashMap;
+mod http_tests {
 
+    use std::time::Duration;
+
+    use crate::http_probe::check_endpoint;
+    use crate::test_utils::test_utils::{probe_get_with_expected_status, probe_post_with_expected_body};
+    
     use reqwest::StatusCode;
+    use wiremock::matchers::{body_string, method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
 
-    use crate::probe::{Probe, ProbeInputParameters, ProbeExpectation, ExpectField, ExpectOperation, ProbeScheduleParameters};
+    #[tokio::test]
+    async fn test_requests_get_200() {
+        let mock_server = MockServer::start().await;
 
-    pub fn probe_get_with_expected_status(status_code: StatusCode, url: String, body: String) -> Probe {
-        return Probe{
-            name: "Test probe".to_string(),
-            url: url,
-            http_method: "GET".to_string(),
-            with: Some(ProbeInputParameters{
-                body: Some(body),
-                headers: Some(HashMap::new())
-            }),
-            expectations: Some(vec![ProbeExpectation{
-                field: ExpectField::StatusCode,
-                operation: ExpectOperation::Equals,
-                value: status_code.as_str().into()
-            }]),
-            schedule: ProbeScheduleParameters{
-                initial_delay: 0,
-                interval: 0
-            }
-        };
+        Mock::given(method("GET"))
+            .and(path("/test"))
+            .respond_with(ResponseTemplate::new(200))
+            .mount(&mock_server)
+            .await;
+
+        let probe = probe_get_with_expected_status(
+            StatusCode::OK,
+            format!("{}/test", mock_server.uri()),
+            "".to_owned(),
+        );
+        let probe_result = check_endpoint(&probe).await;
+
+        assert_eq!(probe_result.unwrap().success, true);
     }
 
-    pub fn probe_post_with_expected_body(expected_body: String, url: String, body: String) -> Probe {
-        return Probe{
-            name: "Test probe".to_string(),
-            url: url,
-            http_method: "POST".to_string(),
-            with: Some(ProbeInputParameters{
-                body: Some(body),
-                headers: Some(HashMap::new())
-            }),
-            expectations: Some(vec![ProbeExpectation{
-                field: ExpectField::StatusCode,
-                operation: ExpectOperation::Equals,
-                value: "200".to_owned(),
-            },ProbeExpectation{
-                field: ExpectField::Body,
-                operation: ExpectOperation::Equals,
-                value: expected_body,
-            }]),
-            schedule: ProbeScheduleParameters{
-                initial_delay: 0,
-                interval: 0
-            }
-        };
+    #[tokio::test]
+    async fn test_requests_get_timeout() {
+        let mock_server = MockServer::start().await;
+
+        let body = "test body";
+
+        Mock::given(method("GET"))
+            .and(path("/test"))
+            .respond_with(ResponseTemplate::new(404).set_delay(Duration::from_secs(30)))
+            .mount(&mock_server)
+            .await;
+
+        let probe = probe_get_with_expected_status(
+            StatusCode::NOT_FOUND,
+            format!("{}/test", mock_server.uri()),
+            body.to_string(),
+        );
+        let probe_result = check_endpoint(&probe).await;
+
+        assert_eq!(probe_result.unwrap().success, false);
+    }
+
+    #[tokio::test]
+    async fn test_requests_get_404() {
+        let mock_server = MockServer::start().await;
+
+        let body = "test body";
+
+        Mock::given(method("GET"))
+            .and(path("/test"))
+            .and(body_string(body.to_string()))
+            .respond_with(ResponseTemplate::new(404))
+            .mount(&mock_server)
+            .await;
+
+        let probe = probe_get_with_expected_status(
+            StatusCode::NOT_FOUND,
+            format!("{}/test", mock_server.uri()),
+            body.to_string(),
+        );
+        let probe_result = check_endpoint(&probe).await;
+
+        assert_eq!(probe_result.unwrap().success, true);
+    }
+
+    #[tokio::test]
+    async fn test_requests_post_200_with_body() {
+        let mock_server = MockServer::start().await;
+
+        let request_body = "request body";
+        let expected_body = "{\"expected_body_field\":\"test\"}";
+
+        Mock::given(method("POST"))
+            .and(path("/test"))
+            .and(body_string(request_body.to_string()))
+            .respond_with(ResponseTemplate::new(200).set_body_string(expected_body.to_owned()))
+            .mount(&mock_server)
+            .await;
+
+        let probe = probe_post_with_expected_body(
+            expected_body.to_owned(),
+            format!("{}/test", mock_server.uri()),
+            request_body.to_owned(),
+        );
+        let probe_result = check_endpoint(&probe).await;
+
+        assert_eq!(probe_result.unwrap().success, true);
     }
 }
-
-// todo: test what happens with different response codes, timeouts etc

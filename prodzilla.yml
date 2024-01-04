@@ -5,7 +5,7 @@ probes:
     expectations:
       - field: StatusCode
         operation: Equals 
-        value: "200"
+        value: "404"
     schedule:
       initial_delay: 5
       interval: 10

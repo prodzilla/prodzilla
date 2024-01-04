@@ -48,12 +48,8 @@ stories:
 :bricks: = In development
 
 - Protocol Support
-    - HTTP / HTTPS Calls
-        - GET :white_check_mark:
-        - POST :white_check_mark:
-        - PUT :white_check_mark:
-        - PATCH :white_check_mark:
-    - Grpc
+    - HTTP / HTTPS Calls :white_check_mark:
+    - gRPC
 - Request Construction
     - Add headers :bricks:
     - Add body :white_check_mark:
@@ -86,3 +82,5 @@ stories:
 - CI / CD Integration
     - Standalone easy-to-install image
     - Github Actions integration to trigger tests / use as smoke tests
+- Otel Support
+    - TraceIds for every request
