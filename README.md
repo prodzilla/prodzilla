@@ -57,6 +57,7 @@ stories:
 - Request Construction
     - Add headers :bricks:
     - Add body :white_check_mark:
+    - Add custom timeouts
 - Response Validation
     - Status code :white_check_mark:
     - Response body :white_check_mark:

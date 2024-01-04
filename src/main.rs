@@ -43,7 +43,7 @@ async fn root() -> &'static str {
 }
 
 // todo
-// check what happens when there are errors, does it shut down
+// check what happens when there is an error when building a request for example
 // update readme with expectations format
 // - do we need tracing?
 // - validation of config fields / use enums for http GET 
