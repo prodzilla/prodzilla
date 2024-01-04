@@ -1,13 +1,7 @@
-use crate::probe::Probe;
 use crate::probe::ProbeExpectation;
-use crate::probe::ProbeInputParameters;
-use crate::probe::ProbeResult;
-use crate::probe::ProbeScheduleParameters;
 use crate::probe::ExpectField;
 use crate::probe::ExpectOperation;
-use lazy_static::lazy_static;
 use reqwest::Error;
-use reqwest::RequestBuilder;
 use reqwest::Response;
 
 // todo be explicit about what failed
