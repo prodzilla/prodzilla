@@ -9,21 +9,11 @@ probes:
     schedule:
       initial_delay: 5
       interval: 10
+    alerts:
+      - url: https://webhook.site/54a9a526-c104-42a7-9b76-788e897390d8 
   - name: Example B
     url: http://google.com
     http_method: GET
     schedule:
       initial_delay: 2
       interval: 6
-
-
-    # expectations:
-    #   - field: status_code
-    #     operation: equals 
-    #     value: "200"
-    #   - field: status_code
-    #     operation: is_one_of 
-    #     value: ["200", "404"]
-    #   - field: body
-    #     operation: contains
-    #     value: "test"

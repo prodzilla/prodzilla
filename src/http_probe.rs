@@ -1,10 +1,10 @@
 use std::str::FromStr;
 use std::time::Duration;
 
-use crate::expectations::validate_error_response;
 use crate::expectations::validate_response;
 use crate::probe::Probe;
 use crate::probe::ProbeResult;
+use chrono::Utc;
 use lazy_static::lazy_static;
 use reqwest::RequestBuilder;
 
@@ -16,10 +16,10 @@ lazy_static! {
 }
 
 pub async fn check_endpoint(probe: &Probe) -> Result<ProbeResult, Box<dyn std::error::Error>> {
+    let timestamp_start = Utc::now();
+
     let request = build_request(probe)?;
     let response = request.timeout(Duration::from_secs(10)).send().await;
-
-    // TODO: Fix this dirty block below
 
     match response {
         Ok(res) => match &probe.expectations {
@@ -32,6 +32,8 @@ pub async fn check_endpoint(probe: &Probe) -> Result<ProbeResult, Box<dyn std::e
                 }
                 return Ok(ProbeResult {
                     success: validation_result,
+                    response: None, // TODO
+                    timestamp_started: timestamp_start,
                 });
             }
             None => {
@@ -39,12 +41,20 @@ pub async fn check_endpoint(probe: &Probe) -> Result<ProbeResult, Box<dyn std::e
                     "Successfully probed {}, no expectation so success is true.",
                     &probe.name
                 );
-                return Ok(ProbeResult { success: true });
+                return Ok(ProbeResult {
+                    success: true,
+                    response: None, // TODO
+                    timestamp_started: timestamp_start,
+                });
             }
         },
         Err(e) => {
             println!("Error whilst executing probe: {}", e);
-            return Ok(ProbeResult { success: false });
+            return Ok(ProbeResult {
+                success: false,
+                response: None,
+                timestamp_started: timestamp_start,
+            });
         }
     }
 }
@@ -74,8 +84,10 @@ mod http_tests {
     use std::time::Duration;
 
     use crate::http_probe::check_endpoint;
-    use crate::test_utils::test_utils::{probe_get_with_expected_status, probe_post_with_expected_body};
-    
+    use crate::test_utils::test_utils::{
+        probe_get_with_expected_status, probe_post_with_expected_body,
+    };
+
     use reqwest::StatusCode;
     use wiremock::matchers::{body_string, method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};

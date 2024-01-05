@@ -28,32 +28,6 @@ pub async fn validate_response(expect: &Vec<ProbeExpectation>, response: Respons
     return Ok(true);
 }
 
-pub fn validate_error_response(expect: &Vec<ProbeExpectation>, error: &Error) -> bool {
-    for expectation in expect {
-        let expectation_result: bool;
-        match expectation.field {
-            ExpectField::Body => {
-                expectation_result = false;
-            }
-            ExpectField::StatusCode => {
-                if let Some(status_code) = error.status() {
-                    let status_code_str: String = status_code.as_str().into();
-                    expectation_result = validate_expectation(&expectation.operation, &expectation.value, &status_code_str);
-                } else {
-                    // This might mean some error on our side??
-                    println!("Error on request, got no status code.");
-                    expectation_result = false;
-                }
-            }
-        }
-
-        if !expectation_result {
-            return false
-        }
-    }
-    return false;
-}
-
 fn validate_expectation(operation: &ExpectOperation, expected_value: &String, value: &String) -> bool {
     match operation {
         ExpectOperation::Equals => {

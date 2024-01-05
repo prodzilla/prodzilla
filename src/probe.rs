@@ -1,5 +1,7 @@
 use std::collections::HashMap;
+use reqwest::StatusCode;
 use serde::{Serialize, Deserialize};
+use chrono::{DateTime, Utc};
 
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -10,6 +12,7 @@ pub struct Probe {
     pub with: Option<ProbeInputParameters>,
     pub expectations: Option<Vec<ProbeExpectation>>,
     pub schedule: ProbeScheduleParameters,
+    pub alerts: Option<Vec<ProbeAlert>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -46,8 +49,22 @@ pub struct ProbeScheduleParameters {
     pub interval: u32,
 }
 
-// datetime, statusCode, result
-pub struct ProbeResult{
-    pub success: bool,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProbeAlert {
+    pub url: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProbeResult {
+    pub timestamp_started: DateTime<Utc>,
+    pub success: bool,
+    pub response: Option<ProbeResponse>
+}
+
+// todo track application errors
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProbeResponse {
+    pub timestamp: DateTime<Utc>,
+    pub status_code: u32,
+    pub body: String,
+}

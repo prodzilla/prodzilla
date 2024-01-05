@@ -23,7 +23,8 @@ pub mod test_utils {
             schedule: ProbeScheduleParameters{
                 initial_delay: 0,
                 interval: 0
-            }
+            },
+            alerts: None,
         };
     }
 
@@ -48,7 +49,8 @@ pub mod test_utils {
             schedule: ProbeScheduleParameters{
                 initial_delay: 0,
                 interval: 0
-            }
+            },
+            alerts: None,
         };
     }
 }

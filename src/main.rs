@@ -3,6 +3,7 @@ mod probe;
 mod expectations;
 mod http_probe;
 mod schedule;
+mod alert_webhook;
 
 use axum::{
     routing::{get},Router,
