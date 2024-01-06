@@ -4,7 +4,7 @@ pub mod test_utils {
 
     use reqwest::StatusCode;
 
-    use crate::probe::{Probe, ProbeInputParameters, ProbeExpectation, ExpectField, ExpectOperation, ProbeScheduleParameters};
+    use crate::probe::{Probe, ProbeInputParameters, ProbeExpectation, ExpectField, ExpectOperation, ProbeScheduleParameters, ProbeAlert};
 
     pub fn probe_get_with_expected_status(status_code: StatusCode, url: String, body: String) -> Probe {
         return Probe{
@@ -25,6 +25,30 @@ pub mod test_utils {
                 interval: 0
             },
             alerts: None,
+        };
+    }
+
+    pub fn probe_get_with_expected_status_and_alert(status_code: StatusCode, url: String, body: String, alert_url: String) -> Probe {
+        return Probe{
+            name: "Test probe".to_string(),
+            url: url,
+            http_method: "GET".to_string(),
+            with: Some(ProbeInputParameters{
+                body: Some(body),
+                headers: Some(HashMap::new())
+            }),
+            expectations: Some(vec![ProbeExpectation{
+                field: ExpectField::StatusCode,
+                operation: ExpectOperation::Equals,
+                value: status_code.as_str().into()
+            }]),
+            schedule: ProbeScheduleParameters{
+                initial_delay: 0,
+                interval: 0
+            },
+            alerts: Some(vec![ProbeAlert{
+                url: alert_url,
+            }]),
         };
     }
 

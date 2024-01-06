@@ -48,6 +48,7 @@ mod test_utils;
 
 
 // TODO:
+// - test what happens if alert call fails - make sure it continues to probe
 // - integration test that starts app up and verifies it's running correctly (for now just run to see it's working, even with 404s)
 // - check what happens when there is an error when building a request - or any other request 
 // - update readme with expectations format

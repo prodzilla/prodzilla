@@ -3,14 +3,17 @@ use std::time::Duration;
 
 use crate::expectations::validate_response;
 use crate::probe::Probe;
+use crate::probe::ProbeResponse;
 use crate::probe::ProbeResult;
 use chrono::Utc;
 use lazy_static::lazy_static;
 use reqwest::RequestBuilder;
 
+const REQUEST_TIMEOUT_SECS: u64 = 10;
+
 lazy_static! {
     static ref CLIENT: reqwest::Client = reqwest::ClientBuilder::new()
-        .user_agent("Prodzilla")
+        .user_agent("Prodzilla Probe/1.0")
         .build()
         .unwrap();
 }
@@ -19,38 +22,53 @@ pub async fn check_endpoint(probe: &Probe) -> Result<ProbeResult, Box<dyn std::e
     let timestamp_start = Utc::now();
 
     let request = build_request(probe)?;
-    let response = request.timeout(Duration::from_secs(10)).send().await;
+    let response = request
+        .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
+        .send().await;
+
+    let timestamp_response = Utc::now();
 
     match response {
-        Ok(res) => match &probe.expectations {
-            Some(expect_back) => {
-                let validation_result = validate_response(&expect_back, res).await?;
-                if validation_result {
-                    println!("Successful response for {}, as expected.", &probe.name);
-                } else {
-                    println!("Successful response for {}, not as expected!", &probe.name);
+        Ok(res) => {
+            let status_code = res.status();
+            let body = res.text().await?;
+            let probe_response = ProbeResponse {
+                timestamp: timestamp_response,
+                status_code: status_code.as_u16() as u32, 
+                body: body.clone(),
+            };
+
+            let validation_result: bool;
+
+            match &probe.expectations {
+                Some(expect_back) => {
+                    validation_result = validate_response(&expect_back, status_code, &body);
+                    if validation_result {
+                        println!("Successful response for {}, as expected.", &probe.name);
+                    } else {
+                        println!("Successful response for {}, not as expected!", &probe.name);
+                    }
                 }
-                return Ok(ProbeResult {
-                    success: validation_result,
-                    response: None, // TODO
-                    timestamp_started: timestamp_start,
-                });
+                None => {
+                    println!(
+                        "Successfully probed {}, no expectation so success is true.",
+                        &probe.name
+                    );
+                    validation_result = true;
+                }
             }
-            None => {
-                println!(
-                    "Successfully probed {}, no expectation so success is true.",
-                    &probe.name
-                );
-                return Ok(ProbeResult {
-                    success: true,
-                    response: None, // TODO
-                    timestamp_started: timestamp_start,
-                });
-            }
+            
+            return Ok(ProbeResult {
+                probe_name: probe.name.clone(),
+                success: validation_result,
+                response: Some(probe_response),
+                timestamp_started: timestamp_start,
+            });
         },
         Err(e) => {
             println!("Error whilst executing probe: {}", e);
             return Ok(ProbeResult {
+                probe_name: probe.name.clone(),
                 success: false,
                 response: None,
                 timestamp_started: timestamp_start,
@@ -77,6 +95,7 @@ fn build_request(probe: &Probe) -> Result<RequestBuilder, Box<dyn std::error::Er
 
     return Ok(request);
 }
+
 
 #[cfg(test)]
 mod http_tests {

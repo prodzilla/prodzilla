@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use reqwest::StatusCode;
 use serde::{Serialize, Deserialize};
 use chrono::{DateTime, Utc};
 
@@ -56,6 +55,7 @@ pub struct ProbeAlert {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProbeResult {
+    pub probe_name: String,
     pub timestamp_started: DateTime<Utc>,
     pub success: bool,
     pub response: Option<ProbeResponse>

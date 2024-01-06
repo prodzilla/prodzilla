@@ -1,14 +1,12 @@
 use crate::probe::ProbeExpectation;
 use crate::probe::ExpectField;
 use crate::probe::ExpectOperation;
-use reqwest::Error;
-use reqwest::Response;
+use reqwest::StatusCode;
 
-// todo be explicit about what failed
-
-pub async fn validate_response(expect: &Vec<ProbeExpectation>, response: Response) -> Result<bool, Box<dyn std::error::Error>> {
-    let status_code: String = response.status().as_str().into();
-    let body = response.text().await?;
+pub fn validate_response(expect: &Vec<ProbeExpectation>, status_code: StatusCode, body: &String) -> bool {
+    
+    let status_string = status_code.as_str().into();
+    
     for expectation in expect {
         let expectation_result: bool;
         match expectation.field {
@@ -16,16 +14,16 @@ pub async fn validate_response(expect: &Vec<ProbeExpectation>, response: Respons
                 expectation_result = validate_expectation(&expectation.operation, &expectation.value, &body);
             }
             ExpectField::StatusCode => {
-                expectation_result = validate_expectation(&expectation.operation, &expectation.value, &status_code);
+                expectation_result = validate_expectation(&expectation.operation, &expectation.value, &status_string);
             }
         }
 
         if !expectation_result {
-            return Ok(false)
+            return false;
         }
     }
 
-    return Ok(true);
+    return true;
 }
 
 fn validate_expectation(operation: &ExpectOperation, expected_value: &String, value: &String) -> bool {
