@@ -4,45 +4,40 @@ Prodzilla is a modern synthetic monitoring tool built in Rust. It's focused on s
 
 A SaaS option will be available soon. More at [prodzilla.io](https://prodzilla.io/).
 
-It's currently in active development.
+It's in active development, but currently supports sending custom requests, verifying responses are as expected, and outputting alerts via webhooks.
 
-## Usage
+## Table of Contents
 
-The application parses the `prodzilla.yml` file to generate a list of probes executed on a given schedule.
+- [Getting Started](#getting-started)
+- [Feature Roadmap](#feature-roadmap)
 
-The yml file will represent a view of the intended behaviour of the services that any human / stakeholder can read and understand.
+## Getting Started
 
-A full view of this is available in `prodzilla-future.yml`.
+The application parses the `prodzilla.yml` file to generate a list of probes executed on a given schedule, and decide how to alert.
+
+The bare minimum config required for a probe is: 
 
 ```yml
-stories:
-  - name: Create cardholder card
-    steps:
-      - name: Create cardholder
-        as: CardholderUser
-        url: https://api.cardwebsite.com/cardholders/create
-        http_method: POST
-        with: CreateCardholderRequest
-        expect_back: ValidCreateCardholderResponse
-
-      - name: Create card
-        as: CardholderUser
-        url: https://api.cardwebsite.com/cards/create
-        http_method: POST
-        with: CreateCardRequest
-        expect_back: ValidCreateCardResponse
-
-      - name: Get card in Admin panel
-        as: CardholderUser
-        url: https://api.cardwebsite.com/cards/create
-        http_method: POST
-        with: CreateCardRequest
-        expect_back: ValidCreateCardResponse
-
-    schedule: EveryMinute10sDelay
+probes:
+  - name: Your Probe Name
+    url: https://github.com/prodzilla/prodzilla
+    http_method: GET
+    schedule:
+      initial_delay: 5
+      interval: 10
 ```
 
+A full view of currently supported features can be inferred by checking out the [prodzilla.yml](/prodzilla.yml).
+
+
 ## Feature Roadmap
+
+The intention is to develop a base set of synthetic monitoring features, before focusing on longer-term goals such as:
+- Increasing visibility of existing production behaviour
+- Automatically generating probes based on OpenAPI schemas, and on deployment
+- Other tools specifically to help test in production, such as flagging, managing and routing test requests and users
+
+Progress on the base set of synthetic monitoring features is loosely tracked below:
 
 :white_check_mark: = Ready
 :bricks: = In development
@@ -51,9 +46,9 @@ stories:
     - HTTP / HTTPS Calls :white_check_mark:
     - gRPC
 - Request Construction
-    - Add headers :bricks:
+    - Add headers :white_check_mark:
     - Add body :white_check_mark:
-    - Add custom timeouts
+    - Custom timeouts
 - Response Validation
     - Status code :white_check_mark:
     - Response body :white_check_mark:
@@ -71,7 +66,7 @@ stories:
     - JSON output of results for all probes
     - UI output of results for all probes
 - Forwarding alerts
-    - Webhooks
+    - Webhooks :white_check_mark:
     - Email
     - Splunk / OpsGenie / PagerDuty / slack integrations?
 - Complex Tests
@@ -79,6 +74,8 @@ stories:
     - Chained queries
     - Parameters in queries
     - Parametrized tests
+- Easy clone and deploy
+    - On Shuttle :bricks:
 - CI / CD Integration
     - Standalone easy-to-install image
     - Github Actions integration to trigger tests / use as smoke tests

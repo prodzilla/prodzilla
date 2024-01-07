@@ -28,8 +28,9 @@ pub async fn alert_if_failure(probe: &Probe, probe_result: &ProbeResult)
             let json = serde_json::to_string(probe_result).map_to_send_err()?;
             request = request.body(json);
     
-            let alert_response = request.timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS)).send().await;
-            println!("Sent webhook alert, {:?}", alert_response)
+            let alert_response = request
+                .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS)).send().await.map_to_send_err()?;
+            println!("Sent webhook alert. Response status code {}", alert_response.status().to_owned());
         }
     }
     

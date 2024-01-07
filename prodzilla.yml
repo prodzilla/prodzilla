@@ -1,11 +1,11 @@
 probes:
   - name: Example A
-    url: https://github.com/codingupastorm/doesntexist
+    url: https://github.com/prodzilla/prodzilla
     http_method: GET
     expectations:
       - field: StatusCode
         operation: Equals 
-        value: "404"
+        value: "200"
     schedule:
       initial_delay: 5
       interval: 10
