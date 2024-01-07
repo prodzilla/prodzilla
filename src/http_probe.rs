@@ -1,6 +1,7 @@
 use std::str::FromStr;
 use std::time::Duration;
 
+use crate::errors::MapToSendError;
 use crate::expectations::validate_response;
 use crate::probe::Probe;
 use crate::probe::ProbeResponse;
@@ -18,7 +19,7 @@ lazy_static! {
         .unwrap();
 }
 
-pub async fn check_endpoint(probe: &Probe) -> Result<ProbeResult, Box<dyn std::error::Error>> {
+pub async fn check_endpoint(probe: &Probe) -> Result<ProbeResult, Box<dyn std::error::Error + Send>> {
     let timestamp_start = Utc::now();
 
     let request = build_request(probe)?;
@@ -31,7 +32,7 @@ pub async fn check_endpoint(probe: &Probe) -> Result<ProbeResult, Box<dyn std::e
     match response {
         Ok(res) => {
             let status_code = res.status();
-            let body = res.text().await?;
+            let body = res.text().await.map_to_send_err()?;
             let probe_response = ProbeResponse {
                 timestamp: timestamp_response,
                 status_code: status_code.as_u16() as u32, 
@@ -77,8 +78,8 @@ pub async fn check_endpoint(probe: &Probe) -> Result<ProbeResult, Box<dyn std::e
     }
 }
 
-fn build_request(probe: &Probe) -> Result<RequestBuilder, Box<dyn std::error::Error>> {
-    let method = reqwest::Method::from_str(&probe.http_method)?;
+fn build_request(probe: &Probe) -> Result<RequestBuilder, Box<dyn std::error::Error + Send>> {
+    let method = reqwest::Method::from_str(&probe.http_method).map_to_send_err()?;
 
     let mut request = CLIENT.request(method, &probe.url);
 

@@ -2,8 +2,9 @@ use std::time::Duration;
 
 use crate::probe::{Probe, ProbeResult};
 use lazy_static::lazy_static;
+use crate::errors::MapToSendError;
 
-const REQUEST_TIMEOUT_SECS: u64 = 20;
+const REQUEST_TIMEOUT_SECS: u64 = 10;
 
 
 lazy_static! {
@@ -13,7 +14,8 @@ lazy_static! {
         .unwrap();
 }
 
-pub async fn alert_if_failure(probe: &Probe, probe_result: &ProbeResult) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn alert_if_failure(probe: &Probe, probe_result: &ProbeResult) 
+    -> Result<(), Box<dyn std::error::Error + Send>> {
 
     if probe_result.success {
         return Ok(())
@@ -23,7 +25,7 @@ pub async fn alert_if_failure(probe: &Probe, probe_result: &ProbeResult) -> Resu
         for alert in alerts {
 
             let mut request = CLIENT.post(&alert.url);
-            let json = serde_json::to_string(probe_result)?;
+            let json = serde_json::to_string(probe_result).map_to_send_err()?;
             request = request.body(json);
     
             let alert_response = request.timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS)).send().await;

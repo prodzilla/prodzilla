@@ -4,6 +4,7 @@ mod expectations;
 mod http_probe;
 mod schedule;
 mod alert_webhook;
+mod errors;
 
 use axum::{
     routing::{get},Router,
@@ -35,7 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn start_monitoring() -> Result<(), Box<dyn std::error::Error>> {
     let config = load_config(PRODZILLA_YAML).await?;
-    schedule_probes(config.probes).await?;
+    schedule_probes(config.probes);
     Ok(())
 }
 
@@ -48,10 +49,9 @@ mod test_utils;
 
 
 // TODO:
+// - consolidate logging into one place, only get 1 log when errors etc
+// - adjustable timeouts and retries on probe and alert calls
 // - test what happens if alert call fails - make sure it continues to probe
-// - integration test that starts app up and verifies it's running correctly (for now just run to see it's working, even with 404s)
-// - check what happens when there is an error when building a request - or any other request 
-// - update readme with expectations format
+// - update readme with expectations format, remove prodzilla-future
 // - do we need tracing?
 // - validation of config fields / use enums for http GET 
-// - fix 
