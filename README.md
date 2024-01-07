@@ -13,6 +13,12 @@ It's in active development, but currently supports sending custom requests, veri
 
 ## Getting Started
 
+To get started probing your services, all you need to do is clone this repo, and in the root execute the command: 
+
+```
+cargo run
+```
+
 The application parses the `prodzilla.yml` file to generate a list of probes executed on a given schedule, and decide how to alert.
 
 The bare minimum config required for a probe is: 
@@ -28,7 +34,6 @@ probes:
 ```
 
 A full view of currently supported features can be inferred by checking out the [prodzilla.yml](/prodzilla.yml).
-
 
 ## Feature Roadmap
 
