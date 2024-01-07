@@ -1,19 +1,31 @@
 probes:
-  - name: Example A
+  - name: Prodzilla Github
     url: https://github.com/prodzilla/prodzilla
     http_method: GET
     expectations:
       - field: StatusCode
         operation: Equals 
         value: "200"
+      - field: Body
+        operation: Contains 
+        value: "prodzilla"
     schedule:
       initial_delay: 5
       interval: 10
     alerts:
       - url: https://webhook.site/54a9a526-c104-42a7-9b76-788e897390d8 
-  - name: Example B
-    url: http://google.com
-    http_method: GET
+  
+  - name: Webhook Receiver Probe
+    url: https://webhook.site/54a9a526-c104-42a7-9b76-788e897390d8 
+    http_method: POST
+    with:
+      headers:
+        x-on-behalf-of: Jeff
+      body: '"{"test": true}"'
+    expectations:
+      - field: StatusCode
+        operation: Equals 
+        value: "200"
     schedule:
       initial_delay: 2
       interval: 6

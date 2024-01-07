@@ -1,6 +1,6 @@
 # Prodzilla 🦖
 
-Prodzilla is a modern synthetic monitoring tool built in Rust. It's focused on surfacing whether existing behaviour in production is as expected in a human-readable format, so that even customers or stakeholders can contribute to system verification. 
+Prodzilla is a modern synthetic monitoring tool built in Rust. It's focused on surfacing whether existing behaviour in production is as expected in a human-readable format, so that stakeholders, or even customers, can contribute to system verification. 
 
 A SaaS option will be available soon. More at [prodzilla.io](https://prodzilla.io/).
 
@@ -33,9 +33,11 @@ A full view of currently supported features can be inferred by checking out the 
 ## Feature Roadmap
 
 The intention is to develop a base set of synthetic monitoring features, before focusing on longer-term goals such as:
-- Increasing visibility of existing production behaviour
+- Supporting complex user flows typically not tested in production
+- Increasing visibility of existing production behaviour from current and past probes
 - Automatically generating probes based on OpenAPI schemas, and on deployment
 - Other tools specifically to help test in production, such as flagging, managing and routing test requests and users
+- Automatic doc generation - both for customers and internal use - based on observed behaviour
 
 Progress on the base set of synthetic monitoring features is loosely tracked below:
 
