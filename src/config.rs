@@ -19,7 +19,7 @@ pub async fn load_config<P: Into<PathBuf>>(path: P) -> Result<Config, Box<dyn st
 
 #[cfg(test)]
 mod config_tests {
-    use crate::{PRODZILLA_YAML, config::load_config};
+    use crate::{config::load_config, PRODZILLA_YAML};
 
     #[tokio::test]
     async fn test_app_yaml_can_load() {

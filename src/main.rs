@@ -1,57 +1,76 @@
+mod alert_webhook;
+mod app_state;
 mod config;
-mod probe;
+mod errors;
 mod expectations;
 mod http_probe;
+mod probe;
 mod schedule;
-mod alert_webhook;
-mod errors;
 
-use axum::{
-    routing::{get},Router,
-};
+use axum::{routing::get, Extension, Json, Router};
+use probe::ProbeResult;
 use schedule::schedule_probes;
+use std::collections::HashMap;
+use std::sync::Arc;
+use tracing::{debug, info};
+use tracing_subscriber::EnvFilter;
 
-use crate::config::load_config;
+use crate::{config::load_config, app_state::AppState};
 
 const PRODZILLA_YAML: &str = "prodzilla.yml";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    
-    start_monitoring().await?;
+    // Initialise logging, so we can use tracing::info! etc elsewhere
+    init_tracing();
 
-    tracing_subscriber::fmt::init();
+    let app_state = Arc::new(AppState::new());
+
+    start_monitoring(app_state.clone()).await?;
 
     let app = Router::new()
-        .route("/", get(root));
+        .route("/", get(root))
+        .route("/probe_results", get(get_probe_results))
+        .layer(Extension(app_state.clone()));
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
         .await
         .unwrap();
-    tracing::debug!("listening on {}", listener.local_addr().unwrap());
+
+    info!("listening on {}", listener.local_addr().unwrap());
+
     axum::serve(listener, app).await.unwrap();
 
     Ok(())
 }
 
-async fn start_monitoring() -> Result<(), Box<dyn std::error::Error>> {
+fn init_tracing() {
+    let filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("info"));
+
+    tracing_subscriber::fmt()
+        .with_env_filter(filter)
+        .init();
+}
+
+async fn start_monitoring(app_state: Arc<AppState>) -> Result<(), Box<dyn std::error::Error>> {
     let config = load_config(PRODZILLA_YAML).await?;
-    schedule_probes(config.probes);
+    schedule_probes(config.probes, app_state);
     Ok(())
 }
 
 async fn root() -> &'static str {
+    debug!("Application root called");
     "Roar!"
+}
+
+async fn get_probe_results(
+    Extension(state): Extension<Arc<AppState>>,
+) -> Json<HashMap<String, Vec<ProbeResult>>> {
+    debug!("Get probe results called");
+    let read_lock = state.probe_results.read();
+    Json(read_lock.unwrap().clone())
 }
 
 #[cfg(test)]
 mod test_utils;
-
-
-// TODO:
-// - consolidate logging into one place, only get 1 log when errors etc
-// - adjustable timeouts and retries on probe and alert calls
-// - test what happens if alert call fails - make sure it continues to probe
-// - update readme with expectations format, remove prodzilla-future
-// - do we need tracing?
-// - validation of config fields / use enums for http GET 

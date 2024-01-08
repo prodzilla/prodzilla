@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
 use chrono::{DateTime, Utc};
-
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Probe {
@@ -32,15 +31,14 @@ pub struct ProbeExpectation {
 pub enum ExpectOperation {
     Equals,
     IsOneOf,
-    Contains
+    Contains,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ExpectField {
     Body,
-    StatusCode
+    StatusCode,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProbeScheduleParameters {
@@ -58,7 +56,7 @@ pub struct ProbeResult {
     pub probe_name: String,
     pub timestamp_started: DateTime<Utc>,
     pub success: bool,
-    pub response: Option<ProbeResponse>
+    pub response: Option<ProbeResponse>,
 }
 
 // todo track application errors

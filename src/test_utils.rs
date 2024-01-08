@@ -4,75 +4,92 @@ pub mod test_utils {
 
     use reqwest::StatusCode;
 
-    use crate::probe::{Probe, ProbeInputParameters, ProbeExpectation, ExpectField, ExpectOperation, ProbeScheduleParameters, ProbeAlert};
+    use crate::probe::{
+        ExpectField, ExpectOperation, Probe, ProbeAlert, ProbeExpectation, ProbeInputParameters,
+        ProbeScheduleParameters,
+    };
 
-    pub fn probe_get_with_expected_status(status_code: StatusCode, url: String, body: String) -> Probe {
-        return Probe{
+    pub fn probe_get_with_expected_status(
+        status_code: StatusCode,
+        url: String,
+        body: String,
+    ) -> Probe {
+        return Probe {
             name: "Test probe".to_string(),
             url: url,
             http_method: "GET".to_string(),
-            with: Some(ProbeInputParameters{
+            with: Some(ProbeInputParameters {
                 body: Some(body),
-                headers: Some(HashMap::new())
+                headers: Some(HashMap::new()),
             }),
-            expectations: Some(vec![ProbeExpectation{
+            expectations: Some(vec![ProbeExpectation {
                 field: ExpectField::StatusCode,
                 operation: ExpectOperation::Equals,
-                value: status_code.as_str().into()
+                value: status_code.as_str().into(),
             }]),
-            schedule: ProbeScheduleParameters{
+            schedule: ProbeScheduleParameters {
                 initial_delay: 0,
-                interval: 0
+                interval: 0,
             },
             alerts: None,
         };
     }
 
-    pub fn probe_get_with_expected_status_and_alert(status_code: StatusCode, url: String, body: String, alert_url: String) -> Probe {
-        return Probe{
+    pub fn probe_get_with_expected_status_and_alert(
+        status_code: StatusCode,
+        url: String,
+        body: String,
+        alert_url: String,
+    ) -> Probe {
+        return Probe {
             name: "Test probe".to_string(),
             url: url,
             http_method: "GET".to_string(),
-            with: Some(ProbeInputParameters{
+            with: Some(ProbeInputParameters {
                 body: Some(body),
-                headers: Some(HashMap::new())
+                headers: Some(HashMap::new()),
             }),
-            expectations: Some(vec![ProbeExpectation{
+            expectations: Some(vec![ProbeExpectation {
                 field: ExpectField::StatusCode,
                 operation: ExpectOperation::Equals,
-                value: status_code.as_str().into()
+                value: status_code.as_str().into(),
             }]),
-            schedule: ProbeScheduleParameters{
+            schedule: ProbeScheduleParameters {
                 initial_delay: 0,
-                interval: 0
+                interval: 0,
             },
-            alerts: Some(vec![ProbeAlert{
-                url: alert_url,
-            }]),
+            alerts: Some(vec![ProbeAlert { url: alert_url }]),
         };
     }
 
-    pub fn probe_post_with_expected_body(expected_body: String, url: String, body: String) -> Probe {
-        return Probe{
+    pub fn probe_post_with_expected_body(
+        expected_body: String,
+        url: String,
+        body: String,
+    ) -> Probe {
+        return Probe {
             name: "Test probe".to_string(),
             url: url,
             http_method: "POST".to_string(),
-            with: Some(ProbeInputParameters{
+            with: Some(ProbeInputParameters {
                 body: Some(body),
-                headers: Some(HashMap::new())
+                headers: Some(HashMap::new()),
             }),
-            expectations: Some(vec![ProbeExpectation{
-                field: ExpectField::StatusCode,
-                operation: ExpectOperation::Equals,
-                value: "200".to_owned(),
-            },ProbeExpectation{
-                field: ExpectField::Body,
-                operation: ExpectOperation::Equals,
-                value: expected_body,
-            }]),
-            schedule: ProbeScheduleParameters{
+            expectations: Some(vec![
+                ProbeExpectation {
+                    field: ExpectField::StatusCode,
+                    operation: ExpectOperation::Equals,
+                    value: "200".to_owned(),
+                },
+                ProbeExpectation {
+                    field: ExpectField::Body,
+                    operation: ExpectOperation::Equals,
+                    value: expected_body,
+                },
+            ]),
+            schedule: ProbeScheduleParameters {
                 initial_delay: 0,
-                interval: 0
+                interval: 0,
             },
             alerts: None,
         };

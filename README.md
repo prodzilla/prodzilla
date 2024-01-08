@@ -9,6 +9,7 @@ It's in active development, but currently supports sending custom requests, veri
 ## Table of Contents
 
 - [Getting Started](#getting-started)
+- [Notifications for Probe Results](#notifications-for-probe-results)
 - [Feature Roadmap](#feature-roadmap)
 
 ## Getting Started
@@ -30,10 +31,69 @@ probes:
     http_method: GET
     schedule:
       initial_delay: 5
-      interval: 10
+      interval: 60
 ```
 
 A full view of currently supported features can be inferred by checking out the [prodzilla.yml](/prodzilla.yml).
+
+
+## Notifications for Probe Results
+
+Prodzilla will send through a webhook when one of your probes fails due to expectations not being met. Expectations can be declared using the `expectations` block and supports an unlimited number of rules. Currently, the supported fields are `StatusCode` and `Body`, and the supported operations are `Equals`, `Contains`, and `IsOneOf` (which accepts a string value separated by the pipe symbol `|`). 
+
+```yml
+    expectations:
+      - field: StatusCode
+        operation: Equals 
+        value: "200"
+      - field: Body
+        operation: Contains 
+        value: "prodzilla"
+    alerts:
+      - url: https://webhook.site/54a9a526-c104-42a7-9b76-788e897390d8 
+```
+
+You can also visit `/probe_results` to get the latest 100 probe results for each probe you've initialised, which will look like this:
+
+```json
+{
+    "Prodzilla Github": [
+        {
+            "probe_name": "Prodzilla Github",
+            "timestamp_started": "2024-01-08T09:14:14.051667600Z",
+            "success": true,
+            "response": {
+                "timestamp": "2024-01-08T09:14:15.259735200Z",
+                "status_code": 200,
+                "body": "<!DOCTYPE html>\n<html..."
+            }
+        },
+        {
+            "probe_name": "Prodzilla Github",
+            "timestamp_started": "2024-01-08T09:14:24.053560100Z",
+            "success": true,
+            "response": {
+                "timestamp": "2024-01-08T09:14:24.082027200Z",
+                "status_code": 200,
+                "body": "<!DOCTYPE html>\n<html..."
+            }
+        }
+    ],
+    "Webhook Receiver Probe": [
+        {
+            "probe_name": "Webhook Receiver Probe",
+            "timestamp_started": "2024-01-08T09:14:11.052497Z",
+            "success": true,
+            "response": {
+                "timestamp": "2024-01-08T09:14:12.621906Z",
+                "status_code": 200,
+                "body": "This URL has no default content configured. <a href=\"https://webhook.site/#!/54a9a526-c104-42a7-9b76-788e897390d8\">View in Webhook.site</a>."
+            }
+        }
+    ]
+}
+```
+
 
 ## Feature Roadmap
 

@@ -28,4 +28,4 @@ probes:
         value: "200"
     schedule:
       initial_delay: 2
-      interval: 6
+      interval: 60

@@ -1,19 +1,26 @@
+use std::sync::Arc;
+
 use tokio::time::Instant;
+use tracing::{error, info};
 
 use crate::alert_webhook::alert_if_failure;
 use crate::http_probe::check_endpoint;
 use crate::probe::Probe;
+use crate::AppState;
 
-pub fn schedule_probes(probes: Vec<Probe>) {
+pub fn schedule_probes(probes: Vec<Probe>, app_state: Arc<AppState>) {
     for probe in probes {
         let probe_clone = probe.clone();
+        let task_state = app_state.clone();
         tokio::spawn(async move {
-            probing_loop(&probe_clone).await;
+            probing_loop(&probe_clone, task_state).await;
         });
     }
 }
 
-pub async fn probing_loop(probe: &Probe) {
+pub async fn probing_loop(probe: &Probe, app_state: Arc<AppState>) {
+    info!("Started probe for {}", probe.name);
+
     let mut next_run_time =
         Instant::now() + std::time::Duration::from_secs(probe.schedule.initial_delay as u64);
 
@@ -29,13 +36,15 @@ pub async fn probing_loop(probe: &Probe) {
 
         match check_endpoint_result {
             Ok(probe_result) => {
+                app_state.add_probe_result(probe.name.clone(), probe_result.clone());
+
                 let send_alert_result = alert_if_failure(probe, &probe_result).await;
                 if let Err(e) = send_alert_result {
-                    println!("Error sending out alert: {}", e);
+                    error!("Error sending out alert: {}", e);
                 }
             }
             Err(e) => {
-                println!("Error constructing probe: {}", e);
+                error!("Error constructing probe: {}", e);
             }
         }
     }
@@ -44,9 +53,13 @@ pub async fn probing_loop(probe: &Probe) {
 #[cfg(test)]
 mod schedule_tests {
 
-    use std::time::Duration;
     use crate::schedule::schedule_probes;
-    use crate::test_utils::test_utils::{probe_get_with_expected_status_and_alert, probe_get_with_expected_status};
+    use crate::test_utils::test_utils::{
+        probe_get_with_expected_status, probe_get_with_expected_status_and_alert,
+    };
+    use crate::AppState;
+    use std::sync::Arc;
+    use std::time::Duration;
 
     use reqwest::StatusCode;
     use wiremock::matchers::{method, path};
@@ -81,7 +94,9 @@ mod schedule_tests {
             format!("{}{}", mock_server.uri(), alert_url.to_owned()),
         );
 
-        schedule_probes(vec![probe]);
+        let app_state = Arc::new(AppState::new());
+
+        schedule_probes(vec![probe], app_state);
 
         // As delay and interval are 0, we'd expect that within 15 seconds our probe has been hit twice
         // One for first probe, then 10s timeout on request, then second probe
@@ -108,8 +123,10 @@ mod schedule_tests {
             format!("{}{}", mock_server.uri(), probe_url.to_owned()),
             "".to_owned(),
         );
-        
-        schedule_probes(vec![probe]);
+
+        let app_state = Arc::new(AppState::new());
+
+        schedule_probes(vec![probe], app_state);
 
         // As delay and interval are 0, we'd expect that within 15 seconds our probe has been hit twice
         // One for first probe, then 10s timeout on request, then second probe
