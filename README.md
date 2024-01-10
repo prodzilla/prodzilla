@@ -41,6 +41,8 @@ A full view of currently supported features can be inferred by checking out the 
 
 Prodzilla will send through a webhook when one of your probes fails due to expectations not being met. Expectations can be declared using the `expectations` block and supports an unlimited number of rules. Currently, the supported fields are `StatusCode` and `Body`, and the supported operations are `Equals`, `Contains`, and `IsOneOf` (which accepts a string value separated by the pipe symbol `|`). 
 
+If expectations aren't met, a copy of the result will be sent as a webhook to any urls configured within `alerts`.
+
 ```yml
     expectations:
       - field: StatusCode
