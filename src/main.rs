@@ -20,28 +20,21 @@ use crate::{config::load_config, app_state::AppState};
 const PRODZILLA_YAML: &str = "prodzilla.yml";
 
 #[shuttle_runtime::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> shuttle_axum::ShuttleAxum {
     // Initialise logging, so we can use tracing::info! etc elsewhere
     init_tracing();
 
     let app_state = Arc::new(AppState::new());
 
-    start_monitoring(app_state.clone()).await?;
+    start_monitoring(app_state.clone()).await
+        .expect("Error in start_monitoring");
 
     let app = Router::new()
         .route("/", get(root))
         .route("/probe_results", get(get_probe_results))
         .layer(Extension(app_state.clone()));
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
-        .await
-        .unwrap();
-
-    info!("listening on {}", listener.local_addr().unwrap());
-
-    axum::serve(listener, app).await.unwrap();
-
-    Ok(())
+    Ok(app.into())
 }
 
 fn init_tracing() {
