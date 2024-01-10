@@ -21,8 +21,8 @@ const PRODZILLA_YAML: &str = "prodzilla.yml";
 
 #[shuttle_runtime::main]
 async fn main() -> shuttle_axum::ShuttleAxum {
-    // Initialise logging, so we can use tracing::info! etc elsewhere
-    init_tracing();
+    // Shuttle has its own tracing so turn this off
+    //init_tracing();
 
     let app_state = Arc::new(AppState::new());
 
