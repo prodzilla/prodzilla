@@ -122,6 +122,7 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
     - Status code :white_check_mark:
     - Response body :white_check_mark:
     - Specific fields
+    - Regex
 - Authentication
     - Bearer Tokens
     - Requests
@@ -132,7 +133,7 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
 - Result storage
     - NativeDB?
 - UI / Output
-    - JSON output of results for all probes
+    - JSON output of results for all probes :white_check_mark:
     - UI output of results for all probes
 - Forwarding alerts
     - Webhooks :white_check_mark:
