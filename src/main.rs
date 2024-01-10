@@ -19,7 +19,7 @@ use crate::{config::load_config, app_state::AppState};
 
 const PRODZILLA_YAML: &str = "prodzilla.yml";
 
-#[tokio::main]
+#[shuttle_runtime::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialise logging, so we can use tracing::info! etc elsewhere
     init_tracing();

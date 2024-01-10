@@ -11,7 +11,7 @@ probes:
         value: "prodzilla"
     schedule:
       initial_delay: 5
-      interval: 10
+      interval: 60
     alerts:
       - url: https://webhook.site/54a9a526-c104-42a7-9b76-788e897390d8 
   
