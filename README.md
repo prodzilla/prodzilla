@@ -9,6 +9,7 @@ It's in active development, but currently supports sending custom requests, veri
 ## Table of Contents
 
 - [Getting Started](#getting-started)
+- [Deploying on Shuttle for free](#deploying-on-shuttle-for-free)
 - [Notifications for Probe Results](#notifications-for-probe-results)
 - [Feature Roadmap](#feature-roadmap)
 
@@ -35,6 +36,10 @@ probes:
 ```
 
 A full view of currently supported features can be inferred by checking out the [prodzilla.yml](/prodzilla.yml).
+
+## Deploying on Shuttle for Free
+
+[Shuttle.rs](https://shuttle.rs) allows hosting of Rust apps for free. Check out [How I'm Getting Free Synthetic Monitoring](https://codingupastorm.dev/2023/11/07/prodzilla-and-shuttle/) for a tutorial on how to deploy Prodzilla to Shuttle for free.
 
 
 ## Notifications for Probe Results
