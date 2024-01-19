@@ -8,6 +8,8 @@ use crate::probe::Probe;
 pub struct Config {
     #[serde(default)]
     pub probes: Vec<Probe>,
+    #[serde(default)]
+    pub stories: Vec<Story>,
 }
 
 pub async fn load_config<P: Into<PathBuf>>(path: P) -> Result<Config, Box<dyn std::error::Error>> {

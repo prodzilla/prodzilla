@@ -1,11 +1,8 @@
-mod alert_webhook;
+mod alerts;
 mod app_state;
 mod config;
 mod errors;
-mod expectations;
-mod http_probe;
 mod probe;
-mod schedule;
 
 use axum::{routing::get, Extension, Json, Router};
 use probe::ProbeResult;
