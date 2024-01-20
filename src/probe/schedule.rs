@@ -3,9 +3,9 @@ use std::sync::Arc;
 use tokio::time::Instant;
 use tracing::{error, info};
 
-use crate::alert_webhook::alert_if_failure;
-use crate::http_probe::check_endpoint;
-use crate::probe::Probe;
+use crate::alerts::outbound_webhook::alert_if_failure;
+use crate::probe::http_probe::check_endpoint;
+use crate::probe::model::Probe;
 use crate::AppState;
 
 pub fn schedule_probes(probes: Vec<Probe>, app_state: Arc<AppState>) {
@@ -53,7 +53,7 @@ pub async fn probing_loop(probe: &Probe, app_state: Arc<AppState>) {
 #[cfg(test)]
 mod schedule_tests {
 
-    use crate::schedule::schedule_probes;
+    use crate::probe::schedule::schedule_probes;
     use crate::test_utils::test_utils::{
         probe_get_with_expected_status, probe_get_with_expected_status_and_alert,
     };

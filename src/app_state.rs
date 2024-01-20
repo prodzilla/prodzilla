@@ -1,6 +1,6 @@
 use std::{sync::RwLock, collections::HashMap};
 
-use crate::probe::ProbeResult;
+use crate::probe::model::ProbeResult;
 
 // Limits the number of results we store per probe. Once we go over this amount we remove the earliest.
 const PROBE_RESULT_LIMIT: usize = 100;

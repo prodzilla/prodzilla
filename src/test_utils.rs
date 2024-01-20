@@ -4,7 +4,7 @@ pub mod test_utils {
 
     use reqwest::StatusCode;
 
-    use crate::probe::{
+    use crate::probe::model::{
         ExpectField, ExpectOperation, Probe, ProbeAlert, ProbeExpectation, ProbeInputParameters,
         ProbeScheduleParameters,
     };

@@ -53,8 +53,3 @@ stories:
       interval: 10
     alerts:
       - url: https://webhook.site/54a9a526-c104-42a7-9b76-788e897390d8 
-
-
-
-https://api.ipify.org/?format=json
-https://ipinfo.io/220.233.4.56/geo

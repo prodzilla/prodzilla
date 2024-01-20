@@ -1,6 +1,6 @@
-use crate::probe::ExpectField;
-use crate::probe::ExpectOperation;
-use crate::probe::ProbeExpectation;
+use crate::probe::model::ExpectField;
+use crate::probe::model::ExpectOperation;
+use crate::probe::model::ProbeExpectation;
 use reqwest::StatusCode;
 
 pub fn validate_response(

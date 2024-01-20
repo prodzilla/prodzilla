@@ -1,1 +1,1 @@
-mod outbound_webhook;
+pub(crate) mod outbound_webhook;

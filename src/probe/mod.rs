@@ -1,4 +1,4 @@
-mod expectations;
-mod http_probe;
-mod model;
-mod schedule;
+pub(crate) mod expectations;
+pub(crate) mod http_probe;
+pub(crate) mod model;
+pub(crate) mod schedule;

@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crate::errors::MapToSendError;
-use crate::probe::{Probe, ProbeResult};
+use crate::probe::model::{Probe, ProbeResult};
 use lazy_static::lazy_static;
 
 const REQUEST_TIMEOUT_SECS: u64 = 10;
@@ -45,8 +45,8 @@ pub async fn alert_if_failure(
 #[cfg(test)]
 mod webhook_tests {
 
-    use crate::alert_webhook::alert_if_failure;
-    use crate::probe::{ProbeResponse, ProbeResult};
+    use crate::alerts::outbound_webhook::alert_if_failure;
+    use crate::probe::model::{ProbeResponse, ProbeResult};
     use crate::test_utils::test_utils::probe_get_with_expected_status_and_alert;
 
     use chrono::Utc;

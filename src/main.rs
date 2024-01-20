@@ -5,8 +5,8 @@ mod errors;
 mod probe;
 
 use axum::{routing::get, Extension, Json, Router};
-use probe::ProbeResult;
-use schedule::schedule_probes;
+use probe::model::ProbeResult;
+use probe::schedule::schedule_probes;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::{debug, info};
