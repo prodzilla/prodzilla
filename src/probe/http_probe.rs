@@ -2,10 +2,10 @@ use std::str::FromStr;
 use std::time::Duration;
 
 use crate::errors::MapToSendError;
-use crate::expectations::validate_response;
-use crate::probe::Probe;
-use crate::probe::ProbeResponse;
-use crate::probe::ProbeResult;
+use crate::probe::expectations::validate_response;
+use crate::probe::model::Probe;
+use crate::probe::model::ProbeResponse;
+use crate::probe::model::ProbeResult;
 use chrono::Utc;
 use lazy_static::lazy_static;
 use reqwest::RequestBuilder;
@@ -107,7 +107,7 @@ mod http_tests {
 
     use std::time::Duration;
 
-    use crate::http_probe::check_endpoint;
+    use crate::probe::http_probe::check_endpoint;
     use crate::test_utils::test_utils::{
         probe_get_with_expected_status, probe_post_with_expected_body,
     };

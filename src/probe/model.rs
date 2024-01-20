@@ -66,3 +66,21 @@ pub struct ProbeResponse {
     pub status_code: u32,
     pub body: String,
 }
+
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Story {
+    pub name: String,
+    pub steps: Vec<Step>,
+    pub schedule: ProbeScheduleParameters,
+    pub alerts: Option<Vec<ProbeAlert>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Step {
+    pub name: String,
+    pub url: String,
+    pub http_method: String,
+    pub with: Option<ProbeInputParameters>,
+    pub expectations: Option<Vec<ProbeExpectation>>,
+}

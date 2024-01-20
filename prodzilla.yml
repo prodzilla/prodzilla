@@ -29,3 +29,27 @@ probes:
     schedule:
       initial_delay: 2
       interval: 60
+
+# note: following structure still in dev - use `probes` above
+stories:
+  - name: Get IP Address Info User Flow
+    steps:
+      - name: get-ip
+        url: https://api.ipify.org/?format=json
+        http_method: GET
+        expectations:
+          - field: StatusCode
+            operation: Equals 
+            value: "200"
+      - name: get-location
+        url: https://ipinfo.io/${{ steps.get-ip.body.ip }}/geo
+        http_method: GET
+        expectations:
+          - field: StatusCode
+            operation: Equals 
+            value: "200"
+    schedule:
+      initial_delay: 5
+      interval: 10
+    alerts:
+      - url: https://webhook.site/54a9a526-c104-42a7-9b76-788e897390d8 

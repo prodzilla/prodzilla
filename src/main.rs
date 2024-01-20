@@ -1,15 +1,12 @@
-mod alert_webhook;
+mod alerts;
 mod app_state;
 mod config;
 mod errors;
-mod expectations;
-mod http_probe;
 mod probe;
-mod schedule;
 
 use axum::{routing::get, Extension, Json, Router};
-use probe::ProbeResult;
-use schedule::schedule_probes;
+use probe::{model::ProbeResult, schedule::schedule_stories};
+use probe::schedule::schedule_probes;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::{debug, info};
@@ -55,7 +52,8 @@ fn init_tracing() {
 
 async fn start_monitoring(app_state: Arc<AppState>) -> Result<(), Box<dyn std::error::Error>> {
     let config = load_config(PRODZILLA_YAML).await?;
-    schedule_probes(config.probes, app_state);
+    schedule_probes(config.probes, app_state.clone());
+    schedule_stories(config.stories, app_state);
     Ok(())
 }
 
