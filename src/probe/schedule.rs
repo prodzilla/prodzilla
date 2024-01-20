@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
 use tokio::time::Instant;
-use tracing::{error, info};
+use tracing::info;
 
-use crate::alerts::outbound_webhook::alert_if_failure;
-use crate::probe::http_probe::check_endpoint;
 use crate::probe::model::Probe;
+use crate::probe::probe_logic::Monitorable;
 use crate::AppState;
+
+use super::model::Story;
 
 pub fn schedule_probes(probes: Vec<Probe>, app_state: Arc<AppState>) {
     for probe in probes {
@@ -18,11 +19,23 @@ pub fn schedule_probes(probes: Vec<Probe>, app_state: Arc<AppState>) {
     }
 }
 
-pub async fn probing_loop(probe: &Probe, app_state: Arc<AppState>) {
-    info!("Started probe for {}", probe.name);
+pub fn schedule_stories(stories: Vec<Story>, app_state: Arc<AppState>) {
+    for story in stories {
+        let story_clone = story.clone();
+        let task_state = app_state.clone();
+        tokio::spawn(async move {
+            probing_loop(&story_clone, task_state).await;
+        });
+    }
+}
+
+pub async fn probing_loop<T: Monitorable>(monitorable: &T, app_state: Arc<AppState>) {
+    info!("Started monitoring {}", monitorable.get_name());
+
+    let schedule = monitorable.get_schedule();
 
     let mut next_run_time =
-        Instant::now() + std::time::Duration::from_secs(probe.schedule.initial_delay as u64);
+        Instant::now() + std::time::Duration::from_secs(schedule.initial_delay as u64);
 
     loop {
         let now = Instant::now();
@@ -30,25 +43,15 @@ pub async fn probing_loop(probe: &Probe, app_state: Arc<AppState>) {
             tokio::time::sleep(next_run_time - now).await;
         }
 
-        next_run_time += std::time::Duration::from_secs(probe.schedule.interval as u64);
+        next_run_time += std::time::Duration::from_secs(schedule.interval as u64);
 
-        let check_endpoint_result = check_endpoint(probe).await;
+        monitorable.probe(app_state.clone()).await;
 
-        match check_endpoint_result {
-            Ok(probe_result) => {
-                app_state.add_probe_result(probe.name.clone(), probe_result.clone());
-
-                let send_alert_result = alert_if_failure(probe, &probe_result).await;
-                if let Err(e) = send_alert_result {
-                    error!("Error sending out alert: {}", e);
-                }
-            }
-            Err(e) => {
-                error!("Error constructing probe: {}", e);
-            }
-        }
+        // TODO: The retrieving of a result and sending through alerts should happen here
     }
 }
+
+
 
 #[cfg(test)]
 mod schedule_tests {

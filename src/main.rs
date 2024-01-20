@@ -5,7 +5,7 @@ mod errors;
 mod probe;
 
 use axum::{routing::get, Extension, Json, Router};
-use probe::model::ProbeResult;
+use probe::{model::ProbeResult, schedule::schedule_stories};
 use probe::schedule::schedule_probes;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -52,7 +52,8 @@ fn init_tracing() {
 
 async fn start_monitoring(app_state: Arc<AppState>) -> Result<(), Box<dyn std::error::Error>> {
     let config = load_config(PRODZILLA_YAML).await?;
-    schedule_probes(config.probes, app_state);
+    schedule_probes(config.probes, app_state.clone());
+    schedule_stories(config.stories, app_state);
     Ok(())
 }
 
