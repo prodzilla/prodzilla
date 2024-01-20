@@ -17,7 +17,7 @@ pub trait Monitorable {
 }
 
 impl Monitorable for Story {
-    async fn probe(&self, app_state: Arc<AppState>) {
+    async fn probe(&self, _app_state: Arc<AppState>) {
         // Implementation for Story
         println!("Performing check on a Story");
     }
