@@ -1,14 +1,42 @@
 use crate::probe::model::ExpectField;
 use crate::probe::model::ExpectOperation;
 use crate::probe::model::ProbeExpectation;
-use reqwest::StatusCode;
+use tracing::debug;
+
+use super::model::EndpointResult;
+
+pub fn check_expectations(
+    step_name: &String,
+    endpoint_result: &EndpointResult, 
+    expectations: &Option<Vec<ProbeExpectation>>,
+) -> bool {
+
+    match expectations {
+        Some(expect_back) => {
+            let validation_result = validate_response(&expect_back, endpoint_result.status_code, &endpoint_result.body);
+            if validation_result {
+                debug!("Successful response for {}, as expected", step_name);
+            } else {
+                debug!("Successful response for {}, not as expected!", step_name);
+            }
+            return validation_result;
+        }
+        None => {
+            debug!(
+                "Successfully probed {}, no expectation so success is true",
+                step_name
+            );
+            return true;
+        }
+    }
+}
 
 pub fn validate_response(
     expect: &Vec<ProbeExpectation>,
-    status_code: StatusCode,
+    status_code: u32,
     body: &String,
 ) -> bool {
-    let status_string = status_code.as_str().into();
+    let status_string = status_code.to_string();
 
     for expectation in expect {
         let expectation_result: bool;

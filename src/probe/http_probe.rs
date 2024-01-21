@@ -2,15 +2,12 @@ use std::str::FromStr;
 use std::time::Duration;
 
 use crate::errors::MapToSendError;
-use crate::probe::expectations::validate_response;
-use crate::probe::model::Probe;
-use crate::probe::model::ProbeResponse;
-use crate::probe::model::ProbeResult;
 use chrono::Utc;
 use lazy_static::lazy_static;
 use reqwest::RequestBuilder;
-use tracing::debug;
-use tracing::error;
+
+use super::model::EndpointResult;
+use super::model::ProbeInputParameters;
 
 const REQUEST_TIMEOUT_SECS: u64 = 10;
 
@@ -21,74 +18,40 @@ lazy_static! {
         .unwrap();
 }
 
-pub async fn check_endpoint(
-    probe: &Probe,
-) -> Result<ProbeResult, Box<dyn std::error::Error + Send>> {
+pub async fn call_endpoint(
+    http_method: &String,
+    url: &String,
+    input_parameters: &Option<ProbeInputParameters>,
+) -> Result<EndpointResult, Box<dyn std::error::Error + Send>> {
     let timestamp_start = Utc::now();
 
-    let request = build_request(probe)?;
+    let request = build_request(http_method, url, input_parameters)?;
     let response = request
         .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
         .send()
-        .await;
+        .await
+        .map_to_send_err()?;
 
     let timestamp_response = Utc::now();
 
-    match response {
-        Ok(res) => {
-            let status_code = res.status();
-            let body = res.text().await.map_to_send_err()?;
-            let probe_response = ProbeResponse {
-                timestamp: timestamp_response,
-                status_code: status_code.as_u16() as u32,
-                body: body.clone(),
-            };
-
-            let validation_result: bool;
-
-            match &probe.expectations {
-                Some(expect_back) => {
-                    validation_result = validate_response(&expect_back, status_code, &body);
-                    if validation_result {
-                        debug!("Successful response for {}, as expected", &probe.name);
-                    } else {
-                        debug!("Successful response for {}, not as expected!", &probe.name);
-                    }
-                }
-                None => {
-                    debug!(
-                        "Successfully probed {}, no expectation so success is true",
-                        &probe.name
-                    );
-                    validation_result = true;
-                }
-            }
-
-            return Ok(ProbeResult {
-                probe_name: probe.name.clone(),
-                success: validation_result,
-                response: Some(probe_response),
-                timestamp_started: timestamp_start,
-            });
-        }
-        Err(e) => {
-            error!("Error whilst executing probe: {}", e);
-            return Ok(ProbeResult {
-                probe_name: probe.name.clone(),
-                success: false,
-                response: None,
-                timestamp_started: timestamp_start,
-            });
-        }
-    }
+    return Ok(EndpointResult{
+        timestamp_request_started: timestamp_start,
+        timestamp_response_received: timestamp_response,
+        status_code: response.status().as_u16() as u32,
+        body: response.text().await.map_to_send_err()?
+    });
 }
 
-fn build_request(probe: &Probe) -> Result<RequestBuilder, Box<dyn std::error::Error + Send>> {
-    let method = reqwest::Method::from_str(&probe.http_method).map_to_send_err()?;
+fn build_request(
+    http_method: &String,
+    url: &String,
+    input_parameters: &Option<ProbeInputParameters>,
+) -> Result<RequestBuilder, Box<dyn std::error::Error + Send>> {
+    let method = reqwest::Method::from_str(http_method).map_to_send_err()?;
 
-    let mut request = CLIENT.request(method, &probe.url);
+    let mut request = CLIENT.request(method, url);
 
-    if let Some(probe_input_parameters) = &probe.with {
+    if let Some(probe_input_parameters) = input_parameters {
         if let Some(body) = &probe_input_parameters.body {
             request = request.body(body.clone());
         }

@@ -47,7 +47,9 @@ pub async fn probing_loop<T: Monitorable>(monitorable: &T, app_state: Arc<AppSta
 
         monitorable.probe(app_state.clone()).await;
 
-        // TODO: The retrieving of a result and sending through alerts should happen here
+        // Here we should also:
+        // - store results
+        // - send through alerts
     }
 }
 

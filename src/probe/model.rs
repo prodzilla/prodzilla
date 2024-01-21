@@ -84,3 +84,10 @@ pub struct Step {
     pub with: Option<ProbeInputParameters>,
     pub expectations: Option<Vec<ProbeExpectation>>,
 }
+
+pub struct EndpointResult {
+    pub timestamp_request_started: DateTime<Utc>,
+    pub timestamp_response_received: DateTime<Utc>,
+    pub status_code: u32,
+    pub body: String,
+}
