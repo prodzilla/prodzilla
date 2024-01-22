@@ -1,12 +1,14 @@
 use std::sync::Arc;
 
+use chrono::Utc;
 use tracing::error;
 
 use crate::alerts::outbound_webhook::alert_if_failure;
 
-use super::expectations::check_expectations;
+use super::expectations::validate_response;
 use super::http_probe::call_endpoint;
-use super::http_probe::check_endpoint;
+use super::model::ProbeResponse;
+use super::model::ProbeResult;
 use super::model::ProbeScheduleParameters;
 use super::model::Story;
 use super::model::Probe;
@@ -40,7 +42,7 @@ impl Monitorable for Story {
 
         // TODO: Implement stories, 
         // keep track of previous response bodies1
-        println!("Performing check on a Story");
+        info!("Performing check on a Story");
     }
 
     fn get_name(&self) -> String {
@@ -56,23 +58,41 @@ impl Monitorable for Probe {
         
         let call_endpoint_result = call_endpoint(&self.http_method, &self.url, &self.with).await;
 
-        let endpoint_result = match call_endpoint_result {
-            Ok(val) => val,
+        let probe_result;
+
+        match call_endpoint_result {
+            Ok(endpoint_result) => {
+                let expectations_result = validate_response(&self.name, &endpoint_result, &self.expectations);
+
+                probe_result = ProbeResult{
+                    probe_name: self.name.clone(),
+                    timestamp_started: endpoint_result.timestamp_request_started,
+                    success: expectations_result,
+                    response: Some(ProbeResponse {
+                        timestamp: endpoint_result.timestamp_response_received,
+                        status_code: endpoint_result.status_code,
+                        body: endpoint_result.body,
+                    })
+                };
+            },
             Err(e) => {
                 error!("Error calling endpoint: {}", e);
-                // add probe result
-                return;
+                probe_result = ProbeResult { 
+                    probe_name: self.name.clone(),
+                    timestamp_started: Utc::now(),
+                    success: false,
+                    response: None,
+                };
             }
         };
 
-        let expectations_result = check_expectations(&self.name, &endpoint_result, &self.expectations);
-
-        if !expectations_result {
-            let send_alert_result = alert_if_failure(self, &probe_result).await;
-            if let Err(e) = send_alert_result {
-                error!("Error sending out alert: {}", e);
-            }
+        let send_alert_result = alert_if_failure(self, &probe_result).await;
+        if let Err(e) = send_alert_result {
+            error!("Error sending out alert: {}", e);
         }
+
+        app_state.add_probe_result(self.name.clone(), probe_result);
+
     }
 
     fn get_name(&self) -> String {

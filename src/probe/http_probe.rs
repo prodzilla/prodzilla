@@ -70,7 +70,8 @@ mod http_tests {
 
     use std::time::Duration;
 
-    use crate::probe::http_probe::check_endpoint;
+    use crate::probe::http_probe::call_endpoint;
+    use crate::probe::expectations::validate_response;
     use crate::test_utils::test_utils::{
         probe_get_with_expected_status, probe_post_with_expected_body,
     };
@@ -78,6 +79,8 @@ mod http_tests {
     use reqwest::StatusCode;
     use wiremock::matchers::{body_string, method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    // Note: These tests are a bit odd because they have been updated since a refactor
 
     #[tokio::test]
     async fn test_requests_get_200() {
@@ -94,9 +97,11 @@ mod http_tests {
             format!("{}/test", mock_server.uri()),
             "".to_owned(),
         );
-        let probe_result = check_endpoint(&probe).await;
+        let endpoint_result 
+            = call_endpoint(&probe.http_method, &probe.url, &probe.with).await.unwrap();
+        let check_expectations_result = validate_response(&probe.name, &endpoint_result, &probe.expectations);
 
-        assert_eq!(probe_result.unwrap().success, true);
+        assert_eq!(check_expectations_result, true);
     }
 
     #[tokio::test]
@@ -116,9 +121,10 @@ mod http_tests {
             format!("{}/test", mock_server.uri()),
             body.to_string(),
         );
-        let probe_result = check_endpoint(&probe).await;
-
-        assert_eq!(probe_result.unwrap().success, false);
+        let endpoint_result 
+            = call_endpoint(&probe.http_method, &probe.url, &probe.with).await;
+        
+        assert!(endpoint_result.is_err());
     }
 
     #[tokio::test]
@@ -139,9 +145,11 @@ mod http_tests {
             format!("{}/test", mock_server.uri()),
             body.to_string(),
         );
-        let probe_result = check_endpoint(&probe).await;
+        let endpoint_result 
+            = call_endpoint(&probe.http_method, &probe.url, &probe.with).await.unwrap();
+        let check_expectations_result = validate_response(&probe.name, &endpoint_result, &probe.expectations);
 
-        assert_eq!(probe_result.unwrap().success, true);
+        assert_eq!(check_expectations_result, true);
     }
 
     #[tokio::test]
@@ -163,8 +171,10 @@ mod http_tests {
             format!("{}/test", mock_server.uri()),
             request_body.to_owned(),
         );
-        let probe_result = check_endpoint(&probe).await;
+        let endpoint_result 
+            = call_endpoint(&probe.http_method, &probe.url, &probe.with).await.unwrap();
+        let check_expectations_result = validate_response(&probe.name, &endpoint_result, &probe.expectations);
 
-        assert_eq!(probe_result.unwrap().success, true);
+        assert_eq!(check_expectations_result, true);
     }
 }

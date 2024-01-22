@@ -5,7 +5,7 @@ use tracing::debug;
 
 use super::model::EndpointResult;
 
-pub fn check_expectations(
+pub fn validate_response(
     step_name: &String,
     endpoint_result: &EndpointResult, 
     expectations: &Option<Vec<ProbeExpectation>>,
@@ -13,7 +13,7 @@ pub fn check_expectations(
 
     match expectations {
         Some(expect_back) => {
-            let validation_result = validate_response(&expect_back, endpoint_result.status_code, &endpoint_result.body);
+            let validation_result = validate_response_internal(&expect_back, endpoint_result.status_code, &endpoint_result.body);
             if validation_result {
                 debug!("Successful response for {}, as expected", step_name);
             } else {
@@ -31,7 +31,7 @@ pub fn check_expectations(
     }
 }
 
-pub fn validate_response(
+pub fn validate_response_internal(
     expect: &Vec<ProbeExpectation>,
     status_code: u32,
     body: &String,

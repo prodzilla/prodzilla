@@ -3,6 +3,7 @@ use std::time::Duration;
 use crate::errors::MapToSendError;
 use crate::probe::model::{Probe, ProbeResult};
 use lazy_static::lazy_static;
+use tracing::info;
 
 const REQUEST_TIMEOUT_SECS: u64 = 10;
 
@@ -32,7 +33,7 @@ pub async fn alert_if_failure(
                 .send()
                 .await
                 .map_to_send_err()?;
-            println!(
+            info!(
                 "Sent webhook alert. Response status code {}",
                 alert_response.status().to_owned()
             );
