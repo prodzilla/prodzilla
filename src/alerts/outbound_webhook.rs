@@ -79,7 +79,7 @@ mod webhook_tests {
             timestamp_started: Utc::now(),
             success: false,
             response: Some(ProbeResponse {
-                timestamp: Utc::now(),
+                timestamp_received: Utc::now(),
                 status_code: 200,
                 body: "Some unexpected body".to_owned(),
             }),

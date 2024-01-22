@@ -62,7 +62,7 @@ pub struct ProbeResult {
 // todo track application errors
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProbeResponse {
-    pub timestamp: DateTime<Utc>,
+    pub timestamp_received: DateTime<Utc>,
     pub status_code: u32,
     pub body: String,
 }
@@ -85,9 +85,35 @@ pub struct Step {
     pub expectations: Option<Vec<ProbeExpectation>>,
 }
 
+pub struct StoryResult {
+    pub story_name: String,
+    pub timestamp_started: DateTime<Utc>,
+    pub success: bool,
+    pub step_results: Vec<StepResult>,
+    pub response: Option<ProbeResponse>,
+}
+
+
+pub struct StepResult {
+    pub step_name: String,
+    pub timestamp_started: DateTime<Utc>,
+    pub success: bool,
+    pub response: Option<ProbeResponse>,
+}
+
 pub struct EndpointResult {
     pub timestamp_request_started: DateTime<Utc>,
     pub timestamp_response_received: DateTime<Utc>,
     pub status_code: u32,
     pub body: String,
+}
+
+impl EndpointResult {
+    pub fn to_probe_response(&self) -> ProbeResponse {
+        return ProbeResponse {
+            timestamp_received: self.timestamp_response_received,
+            status_code: self.status_code,
+            body: self.body,
+        }
+    }
 }

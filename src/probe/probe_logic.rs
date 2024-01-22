@@ -5,6 +5,8 @@ use tracing::error;
 use tracing::info;
 
 use crate::alerts::outbound_webhook::alert_if_failure;
+use crate::probe::expectations;
+use crate::probe::model::StepResult;
 
 use super::expectations::validate_response;
 use super::http_probe::call_endpoint;
@@ -22,27 +24,59 @@ pub trait Monitorable {
     fn get_schedule(&self) -> &ProbeScheduleParameters;
 }
 
+// TODO: Step / Probe can be the same object
+// Reduce nesting in this code?
+
 impl Monitorable for Story {
     async fn probe_and_store_result(&self, _app_state: Arc<AppState>) {
-        // Implementation for Story
 
-        // set up hashmap of steps to json objects?
         let story_state: HashMap<String,String> = HashMap::new();
+        let mut step_results: Vec<StepResult> = vec![];
+        let timestamp_started = Utc::now();
 
         for step in &self.steps {
-            // Overwrite any variables in text
+            // TODO: Overwrite any variables in text
 
-            // Execute Request
+            let call_endpoint_result = call_endpoint(&step.http_method, &step.url, &step.with).await;
+            
+            match call_endpoint_result {
+                Ok(endpoint_result) => {
+                    let expectations_result = validate_response(&step.name, &endpoint_result, &step.expectations);
 
+                    step_results.push(StepResult{
+                        step_name: step.name.clone(),
+                        timestamp_started: endpoint_result.timestamp_request_started,
+                        success: expectations_result,
+                        response: Some(endpoint_result.to_probe_response())
+                    });
 
-            // Check Expectations
+                    if !expectations_result {
+                        break;
+                    }
 
-            // Add Variables to State
+                    // TODO: Add Variables to State
+                    
+                },
+                Err(e) => {
+                    error!("Error calling endpoint: {}", e);
+                    step_results.push(StepResult {
+                        step_name: step.name.clone(),
+                        success: false,
+                        timestamp_started: Utc::now(),
+                        response: None
+                    });
+                    break;
+                }
+            };
         }
-        // for each step
 
-        // TODO: Implement stories, 
-        // keep track of previous response bodies1
+        let last_step = step_results.last().unwrap();
+        
+        // TODO: Build StoryResult
+        // Add to state
+        // Alert if needed
+
+
         info!("Performing check on a Story");
     }
 
@@ -69,11 +103,7 @@ impl Monitorable for Probe {
                     probe_name: self.name.clone(),
                     timestamp_started: endpoint_result.timestamp_request_started,
                     success: expectations_result,
-                    response: Some(ProbeResponse {
-                        timestamp: endpoint_result.timestamp_response_received,
-                        status_code: endpoint_result.status_code,
-                        body: endpoint_result.body,
-                    })
+                    response: Some(endpoint_result.to_probe_response())
                 };
             },
             Err(e) => {
