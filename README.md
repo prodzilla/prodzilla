@@ -44,7 +44,7 @@ A full view of currently supported features can be inferred by checking out the 
 [Shuttle.rs](https://shuttle.rs) allows hosting of Rust apps for free. Check out [How I'm Getting Free Synthetic Monitoring](https://codingupastorm.dev/2023/11/07/prodzilla-and-shuttle/) for a tutorial on how to deploy Prodzilla to Shuttle for free.
 
 
-## Notifications for Probe Results
+## Notifications for Failures
 
 Prodzilla will send through a webhook when one of your probes fails due to expectations not being met. Expectations can be declared using the `expectations` block and supports an unlimited number of rules. Currently, the supported fields are `StatusCode` and `Body`, and the supported operations are `Equals`, `Contains`, and `IsOneOf` (which accepts a string value separated by the pipe symbol `|`). 
 
@@ -148,11 +148,11 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
     - Splunk / OpsGenie / PagerDuty / slack integrations?
 - Complex Tests
     - Retries
-    - Chained queries
+    - Chained queries :bricks:
     - Parameters in queries
     - Parametrized tests
 - Easy clone and deploy
-    - On Shuttle :bricks:
+    - On Shuttle :white_check_mark:
 - CI / CD Integration
     - Standalone easy-to-install image
     - Github Actions integration to trigger tests / use as smoke tests
