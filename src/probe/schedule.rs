@@ -45,11 +45,7 @@ pub async fn probing_loop<T: Monitorable>(monitorable: &T, app_state: Arc<AppSta
 
         next_run_time += std::time::Duration::from_secs(schedule.interval as u64);
 
-        monitorable.probe(app_state.clone()).await;
-
-        // Here we should also:
-        // - store results
-        // - send through alerts
+        monitorable.probe_and_store_result(app_state.clone()).await;
     }
 }
 

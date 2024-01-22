@@ -17,13 +17,13 @@ use std::collections::HashMap;
 use crate::AppState;
 
 pub trait Monitorable {
-    async fn probe(&self, app_state: Arc<AppState>);
+    async fn probe_and_store_result(&self, app_state: Arc<AppState>);
     fn get_name(&self) -> String;
     fn get_schedule(&self) -> &ProbeScheduleParameters;
 }
 
 impl Monitorable for Story {
-    async fn probe(&self, _app_state: Arc<AppState>) {
+    async fn probe_and_store_result(&self, _app_state: Arc<AppState>) {
         // Implementation for Story
 
         // set up hashmap of steps to json objects?
@@ -55,7 +55,7 @@ impl Monitorable for Story {
 }
 
 impl Monitorable for Probe {
-    async fn probe(&self, app_state: Arc<AppState>) {
+    async fn probe_and_store_result(&self, app_state: Arc<AppState>) {
         
         let call_endpoint_result = call_endpoint(&self.http_method, &self.url, &self.with).await;
 
