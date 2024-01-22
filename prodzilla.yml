@@ -5,7 +5,7 @@ probes:
     expectations:
       - field: StatusCode
         operation: Equals 
-        value: "404"
+        value: "200"
       - field: Body
         operation: Contains 
         value: "prodzilla"

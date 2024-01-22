@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use tracing::error;
+use tracing::info;
 
 use crate::alerts::outbound_webhook::alert_if_failure;
 
