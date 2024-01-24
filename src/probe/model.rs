@@ -90,7 +90,6 @@ pub struct StoryResult {
     pub timestamp_started: DateTime<Utc>,
     pub success: bool,
     pub step_results: Vec<StepResult>,
-    pub response: Option<ProbeResponse>,
 }
 
 

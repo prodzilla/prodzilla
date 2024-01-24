@@ -5,6 +5,7 @@ use tracing::error;
 use tracing::info;
 
 use crate::alerts::outbound_webhook::alert_if_failure;
+use crate::app_state;
 use crate::probe::expectations;
 use crate::probe::model::StepResult;
 
@@ -15,6 +16,7 @@ use super::model::ProbeResult;
 use super::model::ProbeScheduleParameters;
 use super::model::Story;
 use super::model::Probe;
+use super::model::StoryResult;
 use std::collections::HashMap;
 use crate::AppState;
 
@@ -28,7 +30,7 @@ pub trait Monitorable {
 // Reduce nesting in this code?
 
 impl Monitorable for Story {
-    async fn probe_and_store_result(&self, _app_state: Arc<AppState>) {
+    async fn probe_and_store_result(&self, app_state: Arc<AppState>) {
 
         let story_state: HashMap<String,String> = HashMap::new();
         let mut step_results: Vec<StepResult> = vec![];
@@ -71,13 +73,18 @@ impl Monitorable for Story {
         }
 
         let last_step = step_results.last().unwrap();
+
+        let story_result = StoryResult{
+            story_name: self.name.clone(),
+            timestamp_started: timestamp_started,
+            success: last_step.success,
+            step_results: step_results
+        };
+
+        app_state.add_story_result(self.name.clone(), story_result);
         
-        // TODO: Build StoryResult
-        // Add to state
         // Alert if needed
 
-
-        info!("Performing check on a Story");
     }
 
     fn get_name(&self) -> String {
