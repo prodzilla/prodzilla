@@ -124,7 +124,7 @@ impl Monitorable for Probe {
             }
         };
 
-        let send_alert_result = alert_if_failure(self, &probe_result).await;
+        let send_alert_result = alert_if_failure(probe_result.success, &probe_result.probe_name, probe_result.timestamp_started, &self.alerts).await;
         if let Err(e) = send_alert_result {
             error!("Error sending out alert: {}", e);
         }
