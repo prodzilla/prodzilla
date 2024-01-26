@@ -223,8 +223,8 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
     - Splunk / OpsGenie / PagerDuty / slack integrations?
 - Complex Tests
     - Retries
-    - Chained queries :bricks:
-    - Parameters in queries
+    - Chained queries :white_check_mark:
+    - Parameters in queries :bricks:
     - Parametrized tests
 - Easy clone and deploy
     - On Shuttle :white_check_mark:
