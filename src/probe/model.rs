@@ -112,7 +112,7 @@ impl EndpointResult {
         return ProbeResponse {
             timestamp_received: self.timestamp_response_received,
             status_code: self.status_code,
-            body: self.body,
+            body: self.body.clone(),
         }
     }
 }

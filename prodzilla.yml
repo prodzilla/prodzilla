@@ -5,7 +5,7 @@ probes:
     expectations:
       - field: StatusCode
         operation: Equals 
-        value: "200"
+        value: "404"
       - field: Body
         operation: Contains 
         value: "prodzilla"
@@ -16,7 +16,7 @@ probes:
       - url: https://webhook.site/3b30d8e7-0f77-4ac8-a1e3-81c23281b948
   
   - name: Webhook Receiver Probe
-    url: https://webhook.site/54a9a526-c104-42a7-9b76-788e897390d8 
+    url:	https://webhook.site/3b30d8e7-0f77-4ac8-a1e3-81c23281b948 
     http_method: POST
     with:
       headers:
