@@ -1,20 +1,4 @@
 probes:
-  - name: Prodzilla Github
-    url: https://github.com/prodzilla/prodzilla
-    http_method: GET
-    expectations:
-      - field: StatusCode
-        operation: Equals 
-        value: "200"
-      - field: Body
-        operation: Contains 
-        value: "prodzilla"
-    schedule:
-      initial_delay: 5
-      interval: 10
-    alerts:
-      - url: https://webhook.site/3b30d8e7-0f77-4ac8-a1e3-81c23281b948
-  
   - name: Your Post Url
     url:	https://your.site/some/path
     http_method: POST
