@@ -5,7 +5,7 @@ probes:
     expectations:
       - field: StatusCode
         operation: Equals 
-        value: "404"
+        value: "200"
       - field: Body
         operation: Contains 
         value: "prodzilla"
@@ -15,12 +15,12 @@ probes:
     alerts:
       - url: https://webhook.site/3b30d8e7-0f77-4ac8-a1e3-81c23281b948
   
-  - name: Webhook Receiver Probe
-    url:	https://webhook.site/3b30d8e7-0f77-4ac8-a1e3-81c23281b948 
+  - name: Your Post Url
+    url:	https://your.site/some/path
     http_method: POST
     with:
       headers:
-        x-on-behalf-of: Jeff
+        x-client-id: ClientId
       body: '"{"test": true}"'
     expectations:
       - field: StatusCode
@@ -29,6 +29,8 @@ probes:
     schedule:
       initial_delay: 2
       interval: 60
+    alerts:
+      - url: https://notify.me/some/path
 
 stories:
   - name: Get IP Address Info User Flow
