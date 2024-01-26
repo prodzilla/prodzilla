@@ -18,5 +18,5 @@ lazy_static = "1.4.0"
 futures = "0.3.29"
 wiremock = "0.5.22"
 chrono = {version = "0.4.31", features = ["serde"] }
-shuttle-runtime = "0.36.0"
-shuttle-axum = "0.36.0"
+shuttle-runtime = "0.37.0"
+shuttle-axum = "0.37.0"
