@@ -28,7 +28,7 @@ To get started probing your services, clone this repo, and in the root execute t
 cargo run
 ```
 
-The application parses the `prodzilla.yml` file to generate a list of probes executed on a given schedule, and decide how to alert.
+The application parses the [prodzilla.yml](/prodzilla.yml) file to generate a list of probes executed on a given schedule, and decide how to alert.
 
 The bare minimum config required is: 
 
@@ -41,8 +41,6 @@ probes:
       initial_delay: 5
       interval: 60
 ```
-
-A full view of currently supported features can be inferred by checking out the [prodzilla.yml](/prodzilla.yml).
 
 ## Configuring Synthetic Monitors
 
