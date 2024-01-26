@@ -53,7 +53,7 @@ A complete Probe config looks as follows:
 
 ```yml
   - name: Your Post Url
-    url:	https://your.site/some/path
+    url: https://your.site/some/path
     http_method: POST
     with:
       headers:
