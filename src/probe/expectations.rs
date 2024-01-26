@@ -22,6 +22,10 @@ pub fn validate_response(
             return validation_result;
         }
         None => {
+
+            // TODO:
+            // If we don't have any expectations, default to checking status is 200
+
             debug!(
                 "Successfully probed {}, no expectation so success is true",
                 step_name

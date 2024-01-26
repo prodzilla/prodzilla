@@ -161,7 +161,7 @@ mod probe_logic_tests {
     use std::sync::Arc;
 
     use crate::app_state::AppState;
-    use crate::probe::model::{ProbeAlert, ProbeScheduleParameters, Step, Story};
+    use crate::probe::model::{ExpectField, ExpectOperation, ProbeAlert, ProbeExpectation, ProbeScheduleParameters, Step, Story};
     use crate::probe::probe_logic::Monitorable;
     use wiremock::matchers::{method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -224,11 +224,72 @@ mod probe_logic_tests {
     }
 
     #[tokio::test]
-    async fn test_story_first_step_fails() {
-        let alert_url = "/alert-test";
-        // alerts: Some(vec![ProbeAlert {
-        //     url: format!("{}{}", mock_server.uri(), alert_url.to_owned()),
-        // }])
+    async fn test_story_second_step_fails() {
+        let mock_server = MockServer::start().await;
+        let step1_path = "/test1";
+        let step2_path = "/test2";
+        let alert_path = "/alert-test";
+        let story_name = "User Flow";
+        let app_state = Arc::new(AppState::new());
+
+        Mock::given(method("GET"))
+            .and(path(step1_path))
+            .respond_with(ResponseTemplate::new(200))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("POST"))
+            .and(path(alert_path))
+            .respond_with(ResponseTemplate::new(200))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let story = Story {
+            name: story_name.to_owned(),
+            steps: vec![
+                Step {
+                    name: "Step 1".to_owned(),
+                    url: format!("{}{}", mock_server.uri(), step1_path.to_owned()),
+                    with: None,
+                    http_method: "GET".to_owned(),
+                    expectations: None,
+                },
+                Step {
+                    name: "Step 2".to_owned(),
+                    url: format!("{}{}", mock_server.uri(), step2_path.to_owned()),
+                    with: None,
+                    http_method: "GET".to_owned(),
+                    expectations: Some(
+                        vec![
+                            ProbeExpectation{
+                                field: ExpectField::StatusCode,
+                                operation: ExpectOperation::Equals,
+                                value: "200".to_owned(),
+                            }
+                        ]
+                    ),
+                },
+            ],
+            schedule: ProbeScheduleParameters {
+                initial_delay: 0,
+                interval: 0,
+            },
+            alerts: Some(vec![ProbeAlert {
+                url: format!("{}{}", mock_server.uri(), alert_path.to_owned()),
+            }]),
+        };
+
+        story.probe_and_store_result(app_state.clone()).await;
+
+        let story_result_map = app_state.story_results.read().unwrap();
+        let results = &story_result_map[story_name];
+        assert_eq!(1, results.len());
+        let story_result = &results[0];
+        assert_eq!(false, story_result.success);
+        assert_eq!(2, story_result.step_results.len());
+
     }
 
     // let alert_url = "/alert-test";
