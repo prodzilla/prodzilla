@@ -11,13 +11,18 @@ To be part of the community, or for any questions, join our [Discord](https://di
 ## Table of Contents
 
 - [Getting Started](#getting-started)
+- [Configuring Synthetic Monitors](#configuring-synthetic-monitors)
+    - [Probes](#probes)
+    - [Stories](#stories)
+    - [Expectations](#expectations)
+- [Notifications for Failures](#notifications-for-failures)
+- [Prodzilla Server Endpoints](#prodzilla-server-endpoints)
 - [Deploying on Shuttle for free](#deploying-on-shuttle-for-free)
-- [Notifications for Probe Results](#notifications-for-probe-results)
 - [Feature Roadmap](#feature-roadmap)
 
 ## Getting Started
 
-To get started probing your services, all you need to do is clone this repo, and in the root execute the command: 
+To get started probing your services, clone this repo, and in the root execute the command: 
 
 ```
 cargo run
@@ -25,12 +30,12 @@ cargo run
 
 The application parses the `prodzilla.yml` file to generate a list of probes executed on a given schedule, and decide how to alert.
 
-The bare minimum config required for a probe is: 
+The bare minimum config required is: 
 
 ```yml
 probes:
   - name: Your Probe Name
-    url: https://github.com/prodzilla/prodzilla
+    url: https://yoururl.com/some/path
     http_method: GET
     schedule:
       initial_delay: 5
@@ -39,30 +44,98 @@ probes:
 
 A full view of currently supported features can be inferred by checking out the [prodzilla.yml](/prodzilla.yml).
 
-## Deploying on Shuttle for Free
+## Configuring Synthetic Monitors
 
-[Shuttle.rs](https://shuttle.rs) allows hosting of Rust apps for free. Check out [How I'm Getting Free Synthetic Monitoring](https://codingupastorm.dev/2023/11/07/prodzilla-and-shuttle/) for a tutorial on how to deploy Prodzilla to Shuttle for free.
+Prodzilla offers two ways to check live endpoints, Probes and Stories.
 
+### Probes
+Probes define a single endpoint to be called with given parameters, and assert the response is as expected. This is a traditional synthetic monitor.
 
-## Notifications for Failures
-
-Prodzilla will send through a webhook when one of your probes fails due to expectations not being met. Expectations can be declared using the `expectations` block and supports an unlimited number of rules. Currently, the supported fields are `StatusCode` and `Body`, and the supported operations are `Equals`, `Contains`, and `IsOneOf` (which accepts a string value separated by the pipe symbol `|`). 
-
-If expectations aren't met, a copy of the result will be sent as a webhook to any urls configured within `alerts`.
+A complete Probe config looks as follows:
 
 ```yml
+  - name: Your Post Url
+    url:	https://your.site/some/path
+    http_method: POST
+    with:
+      headers:
+        x-client-id: ClientId
+      body: '"{"test": true}"'
     expectations:
       - field: StatusCode
         operation: Equals 
         value: "200"
-      - field: Body
-        operation: Contains 
-        value: "prodzilla"
+    schedule:
+      initial_delay: 2
+      interval: 60
     alerts:
-      - url: https://webhook.site/54a9a526-c104-42a7-9b76-788e897390d8 
+      - url: https://notify.me/some/path
 ```
 
-You can also visit `/probe_results` to get the latest 100 probe results for each probe you've initialised, which will look like this:
+### Stories
+
+Stories define a chain of calls to different endpoints, to emulate the flow a real user would go through. Values from the response of earlier calls can be input to the request of another.
+
+```yml
+stories:
+  - name: Get IP Address Info User Flow
+    steps:
+      - name: get-ip
+        url: https://api.ipify.org/?format=json
+        http_method: GET
+        expectations:
+          - field: StatusCode
+            operation: Equals 
+            value: "200"
+      - name: get-location
+        url: https://ipinfo.io/149.167.5.69/geo # will use ${{ steps.get-ip.body.ip }} in future
+        http_method: GET
+        expectations:
+          - field: StatusCode
+            operation: Equals 
+            value: "200"
+    schedule:
+      initial_delay: 5
+      interval: 10
+    alerts:
+      - url: https://webhook.site/54a9a526-c104-42a7-9b76-788e897390d8 
+
+```
+
+### Expectations
+
+Expectations can be declared using the `expectations` block and supports an unlimited number of rules. Currently, the supported fields are `StatusCode` and `Body`, and the supported operations are `Equals`, `Contains`, and `IsOneOf` (which accepts a string value separated by the pipe symbol `|`).
+
+Expectations can be put on Probes, or Steps within Stories.
+
+
+## Notifications for Failures
+
+If expectations aren't met for a Probe or Story, a webhook will be sent to any urls configured within `alerts`.
+
+```yml
+    - name: Probe or Story Name
+      ...
+      alerts:
+        - url: https://webhook.site/54a9a526-c104-42a7-9b76-788e897390d8 
+
+```
+
+The webhook looks as such:
+```yml
+{
+  "message": "Probe failed.",
+  "probe_name": "Your Probe",
+  "failure_timestamp": "2024-01-26T02:41:02.983025Z"
+}
+
+```
+
+Slack, OpsGenie, and PagerDuty notification integrations are planned.
+
+## Prodzilla Server Endpoints
+
+You can visit `localhost:3000/probe_results` to get the latest 100 probe results for each probe you've initialised, which will look like this:
 
 ```json
 {
@@ -102,6 +175,10 @@ You can also visit `/probe_results` to get the latest 100 probe results for each
     ]
 }
 ```
+
+## Deploying on Shuttle for Free
+
+[Shuttle.rs](https://shuttle.rs) allows hosting of Rust apps for free. Check out [How I'm Getting Free Synthetic Monitoring](https://codingupastorm.dev/2023/11/07/prodzilla-and-shuttle/) for a tutorial on how to deploy Prodzilla to Shuttle for free.
 
 
 ## Feature Roadmap

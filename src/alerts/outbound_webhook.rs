@@ -1,7 +1,9 @@
 use std::time::Duration;
 
+use crate::alerts::model::WebhookNotification;
 use crate::errors::MapToSendError;
-use crate::probe::model::{Probe, ProbeResult};
+use crate::probe::model::ProbeAlert;
+use chrono::{DateTime, Utc};
 use lazy_static::lazy_static;
 use tracing::info;
 
@@ -15,30 +17,51 @@ lazy_static! {
 }
 
 pub async fn alert_if_failure(
-    probe: &Probe,
-    probe_result: &ProbeResult,
+    success: bool,
+    probe_name: &String,
+    failure_timestamp: DateTime<Utc>,
+    alerts: &Option<Vec<ProbeAlert>>,
 ) -> Result<(), Box<dyn std::error::Error + Send>> {
-    if probe_result.success {
+    if success {
         return Ok(());
     }
 
-    if let Some(alerts) = &probe.alerts {
-        for alert in alerts {
-            let mut request = CLIENT.post(&alert.url);
-            let json = serde_json::to_string(probe_result).map_to_send_err()?;
-            request = request.body(json);
-
-            let alert_response = request
-                .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
-                .send()
-                .await
-                .map_to_send_err()?;
-            info!(
-                "Sent webhook alert. Response status code {}",
-                alert_response.status().to_owned()
-            );
+    if let Some(alerts_vec) = alerts {
+        for alert in alerts_vec {
+            send_alert(alert, probe_name.clone(), failure_timestamp).await?;
         }
     }
+
+    return Ok(());
+}
+
+pub async fn send_alert(
+    alert: &ProbeAlert,
+    probe_name: String,
+    failure_timestamp: DateTime<Utc>,
+) -> Result<(), Box<dyn std::error::Error + Send>> {
+    // When we have other alert types, add them in some kind of switch here
+
+    let mut request = CLIENT.post(&alert.url);
+
+    let request_body = WebhookNotification {
+        message: "Probe failed.".to_owned(),
+        probe_name: probe_name,
+        failure_timestamp,
+    };
+
+    let json = serde_json::to_string(&request_body).map_to_send_err()?;
+    request = request.body(json);
+
+    let alert_response = request
+        .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
+        .send()
+        .await
+        .map_to_send_err()?;
+    info!(
+        "Sent webhook alert. Response status code {}",
+        alert_response.status().to_owned()
+    );
 
     return Ok(());
 }
@@ -47,11 +70,9 @@ pub async fn alert_if_failure(
 mod webhook_tests {
 
     use crate::alerts::outbound_webhook::alert_if_failure;
-    use crate::probe::model::{ProbeResponse, ProbeResult};
-    use crate::test_utils::test_utils::probe_get_with_expected_status_and_alert;
+    use crate::probe::model::ProbeAlert;
 
     use chrono::Utc;
-    use reqwest::StatusCode;
     use wiremock::matchers::{method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -64,28 +85,17 @@ mod webhook_tests {
         Mock::given(method("POST"))
             .and(path(alert_url))
             .respond_with(ResponseTemplate::new(200))
+            .expect(1)
             .mount(&mock_server)
             .await;
 
-        let probe = probe_get_with_expected_status_and_alert(
-            StatusCode::OK,
-            "".to_owned(),
-            "".to_owned(),
-            format!("{}{}", mock_server.uri(), alert_url.to_owned()),
-        );
+        let probe_name = "Some Flow".to_owned();
+        let alerts = Some(vec![ProbeAlert {
+            url: format!("{}{}", mock_server.uri(), alert_url.to_owned()),
+        }]);
+        let failure_timestamp = Utc::now();
 
-        let probe_result = ProbeResult {
-            probe_name: probe.name.clone(),
-            timestamp_started: Utc::now(),
-            success: false,
-            response: Some(ProbeResponse {
-                timestamp: Utc::now(),
-                status_code: 200,
-                body: "Some unexpected body".to_owned(),
-            }),
-        };
-
-        let alert_result = alert_if_failure(&probe, &probe_result).await;
+        let alert_result = alert_if_failure(false, &probe_name, failure_timestamp, &alerts).await;
 
         assert!(alert_result.is_ok());
     }

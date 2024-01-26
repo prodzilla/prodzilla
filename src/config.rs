@@ -36,6 +36,6 @@ mod config_tests {
 
         // Perform multiple tests using borrowed references
         assert_eq!(2, config.probes.len(), "Probes length should be 2");
-        assert_eq!(0, config.stories.len(), "Probes length should be 0"); 
+        assert_eq!(1, config.stories.len(), "Stories length should be 1"); 
     }
 }
