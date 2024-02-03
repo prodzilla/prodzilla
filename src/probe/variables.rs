@@ -5,8 +5,18 @@ use std::collections::HashMap;
 use regex::Regex;
 use lazy_static::lazy_static;
 
+use super::model::ProbeInputParameters;
+
 pub struct StoryVariables {
-    pub step_variables: HashMap<String, StepVariables>
+    pub steps: HashMap<String, StepVariables>
+}
+
+impl StoryVariables {
+    pub fn new() -> StoryVariables {
+        return StoryVariables {
+            steps: HashMap::new()
+        };
+    }
 }
 
 pub struct StepVariables {
@@ -17,8 +27,26 @@ lazy_static! {
     static ref SUB_REGEX: Regex = Regex::new(r"\$\{\{(.*?)\}\}").unwrap();
 }
 
-// This could return an error in future - for now it will just fill an empty string
-fn substitute_variables(content: &str, variables: &StoryVariables) -> String {
+pub fn substitute_input_parameters(input_parameters: &Option<ProbeInputParameters>, variables: &StoryVariables) -> Option<ProbeInputParameters> {
+    input_parameters.as_ref().map(|input| {
+        ProbeInputParameters {
+            body: input.body.as_ref().map(|body| substitute_variables(body, variables)),
+            headers: input.headers.as_ref().map(|headers| substitute_variables_in_headers(headers, variables)),
+        }
+    })
+}
+
+pub fn substitute_variables_in_headers(headers: &HashMap<String, String>, variables: &StoryVariables) -> HashMap<String, String> {
+    headers.iter().map(|(key, value)| {
+        // Substitute variables in both the key and the value
+        let substituted_key = substitute_variables(key, variables);
+        let substituted_value = substitute_variables(value, variables);
+        (substituted_key, substituted_value)
+    }).collect()
+}
+
+// This could return an error in future - for now it fills an empty string
+pub fn substitute_variables(content: &String, variables: &StoryVariables) -> String {
     SUB_REGEX.replace_all(content, |caps: &regex::Captures| {
         let placeholder = &caps[1];
         let parts: Vec<&str> = placeholder.split('.').collect();
@@ -41,7 +69,7 @@ fn get_generated_value(type_to_generate: Option<&&str>) -> String {
 fn substitute_step_value(parts: &[&str], variables: &StoryVariables) -> String {
     let step_name = parts[0];
 
-    match variables.step_variables.get(step_name) {
+    match variables.steps.get(step_name) {
         Some(step) => {
             // TODO: We should check .response and .body
             if parts.len() > 3 {
@@ -57,7 +85,7 @@ fn substitute_step_value(parts: &[&str], variables: &StoryVariables) -> String {
     }
 }
 
-
+// TODO: We should be able to handle arrays
 fn get_nested_json_value(parts: &[&str], json_string: &String) -> String {
     let json_value: Value = match serde_json::from_str(json_string) {
         Ok(val) => val,
@@ -78,12 +106,15 @@ fn get_nested_json_value(parts: &[&str], json_string: &String) -> String {
         };
     }
 
-    serde_json::to_string(current_value).unwrap_or_else(|_| "".to_string())
+    json_value_to_string(current_value)
 }
 
-
-// todo test non existent variable name
-// also test if there aren't enough "." so we go out of index
+fn json_value_to_string(value: &Value) -> String {
+    match value {
+        Value::String(s) => s.clone(),
+        _ => serde_json::to_string(value).unwrap_or_else(|_| "".to_string()),
+    }
+}
 
 #[tokio::test]
 async fn test_substitute_several_variables() {
@@ -91,7 +122,7 @@ async fn test_substitute_several_variables() {
     entire_body: ${{steps.get-token.response.body}}
     token: ${{steps.get-token.response.body.token}}
     uuid: "${{generate.uuid}}"
-    "#;
+    "#.to_owned();
 
     let body_str = r#"{
         "token": "12345",
@@ -99,21 +130,55 @@ async fn test_substitute_several_variables() {
     }"#;
 
     let variables = StoryVariables {
-        step_variables: HashMap::from([
+        steps: HashMap::from([
             ("get-token".to_string(), StepVariables{
                 response_body: body_str.to_string()
             })
         ])
     };
 
-    let result = substitute_variables(content, &variables);
+    let result = substitute_variables(&content, &variables);
     assert!(result.contains(r#""other_field": "value""#));
     assert!(result.contains(r#""token": "12345""#));
 }
 
 #[tokio::test]
+async fn test_substitute_input_parameters() {
+    let body_str = r#"{
+        "token": "12345",
+        "other_field": "value"
+    }"#;
+
+    let variables = StoryVariables {
+        steps: HashMap::from([
+            ("get-token".to_string(), StepVariables{
+                response_body: body_str.to_string()
+            })
+        ])
+    };
+
+    let input_parameters = Some(ProbeInputParameters {
+        body: Some("entire_body: ${{steps.get-token.response.body}}".to_owned()),
+        headers: Some(HashMap::from(
+            [
+                ("Authorization".to_owned(), "Bearer ${{steps.get-token.response.body.token}}".to_owned())
+            ]
+        ))
+    });
+
+    let result = substitute_input_parameters(&input_parameters, &variables);
+    assert_eq!("Bearer 12345", result.unwrap().headers.unwrap()["Authorization"]);
+}
+
+#[tokio::test]
+async fn test_substitute_input_parameters_empty() {
+    let result = substitute_input_parameters(&None, &StoryVariables::new());
+    assert!(result.is_none());
+}
+
+#[tokio::test]
 async fn test_substitute_variable_doesnt_exist_in_json() {
-    let content = r#"field: ${{steps.get-token.response.body.invalid}}"#;
+    let content = r#"field: ${{steps.get-token.response.body.invalid}}"#.to_owned();
 
     let body_str = r#"{
         "token": "12345",
@@ -122,26 +187,26 @@ async fn test_substitute_variable_doesnt_exist_in_json() {
 
     // Simulate variables from story
     let variables = StoryVariables {
-        step_variables: HashMap::from([
+        steps: HashMap::from([
             ("get-token".to_string(), StepVariables{
                 response_body: body_str.to_string()
             })
         ])
     };
 
-    let result = substitute_variables(content, &variables);
+    let result = substitute_variables(&content, &variables);
     assert_eq!("field: ".to_owned(), result);
 }
 
 #[tokio::test]
 async fn test_substitute_variable_step_doesnt_exist() {
-    let content = r#"field: ${{steps.get-token.response.body.invalid}}"#;
+    let content = r#"field: ${{steps.get-token.response.body.invalid}}"#.to_owned();
 
     // Simulate variables from story
     let variables = StoryVariables {
-        step_variables: HashMap::new()
+        steps: HashMap::new()
     };
 
-    let result = substitute_variables(content, &variables);
+    let result = substitute_variables(&content, &variables);
     assert_eq!("field: ".to_owned(), result);
 }

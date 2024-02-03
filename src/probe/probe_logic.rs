@@ -6,6 +6,10 @@ use tracing::info;
 
 use crate::alerts::outbound_webhook::alert_if_failure;
 use crate::probe::model::StepResult;
+use crate::probe::variables::substitute_input_parameters;
+use crate::probe::variables::substitute_variables;
+use crate::probe::variables::StepVariables;
+use crate::probe::variables::StoryVariables;
 
 use super::expectations::validate_response;
 use super::http_probe::call_endpoint;
@@ -15,7 +19,6 @@ use super::model::ProbeScheduleParameters;
 use super::model::Story;
 use super::model::StoryResult;
 use crate::AppState;
-use std::collections::HashMap;
 
 pub trait Monitorable {
     async fn probe_and_store_result(&self, app_state: Arc<AppState>);
@@ -26,36 +29,43 @@ pub trait Monitorable {
 // TODOs here: Step / Probe can be the same object
 // The timestamps are a little disorganised
 // Reduce nested code
+// Kill all the .clone() - I think the source of truth is the StepResult values?
 
 impl Monitorable for Story {
     async fn probe_and_store_result(&self, app_state: Arc<AppState>) {
-        let _story_state: HashMap<String, String> = HashMap::new();
+        let mut story_variables = StoryVariables::new();
         let mut step_results: Vec<StepResult> = vec![];
         let timestamp_started = Utc::now();
 
         for step in &self.steps {
-            // TODO: Overwrite any variables in text
+            
+            let url = substitute_variables(&step.url, &story_variables);
+            let input_parameters = substitute_input_parameters(&step.with, &story_variables);
 
             let call_endpoint_result =
-                call_endpoint(&step.http_method, &step.url, &step.with).await;
+                call_endpoint(&step.http_method, &url, &input_parameters).await;
 
             match call_endpoint_result {
                 Ok(endpoint_result) => {
                     let expectations_result =
                         validate_response(&step.name, &endpoint_result, &step.expectations);
 
-                    step_results.push(StepResult {
+                    let step_result = StepResult {
                         step_name: step.name.clone(),
                         timestamp_started: endpoint_result.timestamp_request_started,
                         success: expectations_result,
                         response: Some(endpoint_result.to_probe_response()),
-                    });
+                    };
+                    step_results.push(step_result);
 
                     if !expectations_result {
                         break;
                     }
 
-                    // TODO: Add Variables to State
+                    let step_variables = StepVariables{
+                        response_body: step_results.last().unwrap().response.clone().unwrap().body
+                    };
+                    story_variables.steps.insert(step.name.clone(), step_variables);
                 }
                 Err(e) => {
                     error!("Error calling endpoint: {}", e);
