@@ -72,7 +72,7 @@ A complete Probe config looks as follows:
 
 ### Stories
 
-Stories define a chain of calls to different endpoints, to emulate the flow a real user would go through. Values from the response of earlier calls can be input to the request of another.
+Stories define a chain of calls to different endpoints, to emulate the flow a real user would go through. Values from the response of earlier calls can be input to the request of another (note this part is in dev right now).
 
 ```yml
 stories:
@@ -86,7 +86,7 @@ stories:
             operation: Equals 
             value: "200"
       - name: get-location
-        url: https://ipinfo.io/149.167.5.69/geo # will use ${{ steps.get-ip.body.ip }} in future
+        url: https://ipinfo.io/149.167.5.69/geo # will use ${{ steps.get-ip.response.body.ip }} in future
         http_method: GET
         expectations:
           - field: StatusCode
@@ -205,17 +205,15 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
     - Response body :white_check_mark:
     - Specific fields
     - Regex
-- Authentication
-    - Bearer Tokens
-    - Requests
 - Yaml Objects - Reusable parameters
     - Request bodies
     - Authenticated users
     - Validation
 - Result storage
     - NativeDB?
-- UI / Output
+- Output
     - JSON output of results for all probes :white_check_mark:
+    - Prometheus Endpoint
     - UI output of results for all probes
 - Forwarding alerts
     - Webhooks :white_check_mark:
