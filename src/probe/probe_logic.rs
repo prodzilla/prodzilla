@@ -168,12 +168,13 @@ impl Monitorable for Probe {
 #[cfg(test)]
 mod probe_logic_tests {
 
+    use std::collections::HashMap;
     use std::sync::Arc;
 
     use crate::app_state::AppState;
-    use crate::probe::model::{ExpectField, ExpectOperation, ProbeAlert, ProbeExpectation, ProbeScheduleParameters, Step, Story};
+    use crate::probe::model::{ExpectField, ExpectOperation, ProbeAlert, ProbeExpectation, ProbeInputParameters, ProbeScheduleParameters, Step, Story};
     use crate::probe::probe_logic::Monitorable;
-    use wiremock::matchers::{method, path};
+    use wiremock::matchers::{header, method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     #[tokio::test]
@@ -302,22 +303,85 @@ mod probe_logic_tests {
 
     }
 
-    // let alert_url = "/alert-test";
+    #[tokio::test]
+    async fn test_story_passes_all_variables() {
+        let mock_server = MockServer::start().await;
+        let step1_path = "/test1";
+        let step1_response_body_str = r#"{
+            "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+            "path": "value"
+        }"#;
 
-    //     Mock::given(method("POST"))
-    //         .and(path(alert_url))
-    //         .respond_with(ResponseTemplate::new(200))
-    //         .expect(1)
-    //         .mount(&mock_server)
-    //         .await;
+        let step2_path = "/${{steps.step1.response.body.path}}/test2";
+        let step2_constructed_path = "/value/test2";
+        let step2_headers = HashMap::from([
+            ("Authorization".to_owned(), "Bearer ${{steps.step1.response.body.token}}".to_owned())
+        ]);
+        let step2_body_str = r#"{"uuid": "${{generate.uuid}}"}"#;
 
-    //     let probe_name = "Some Flow".to_owned();
-    //     let alerts = Some(vec![ProbeAlert {
-    //         url: format!("{}{}", mock_server.uri(), alert_url.to_owned()),
-    //     }]);
-    //     let failure_timestamp = Utc::now();
 
-    //     let alert_result = alert_if_failure(false, &probe_name, failure_timestamp, &alerts).await;
+        let story_name = "User Flow";
+        let app_state = Arc::new(AppState::new());
 
-    //     assert!(alert_result.is_ok());
+        Mock::given(method("GET"))
+            .and(path(step1_path))
+            .respond_with(ResponseTemplate::new(200).set_body_string(step1_response_body_str))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+            Mock::given(method("POST"))
+            .and(path(step2_constructed_path))
+            .and(header("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"))
+            .respond_with(ResponseTemplate::new(200))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let story = Story {
+            name: story_name.to_owned(),
+            steps: vec![
+                Step {
+                    name: "step1".to_owned(),
+                    url: format!("{}{}", mock_server.uri(), step1_path.to_owned()),
+                    with: None,
+                    http_method: "GET".to_owned(),
+                    expectations: None,
+                },
+                Step {
+                    name: "Step 2".to_owned(),
+                    url: format!("{}{}", mock_server.uri(), step2_path.to_owned()),
+                    with: Some(ProbeInputParameters{
+                        headers: Some(step2_headers),
+                        body: Some(step2_body_str.to_owned()),
+                    }),
+                    http_method: "POST".to_owned(),
+                    expectations: Some(
+                        vec![
+                            ProbeExpectation{
+                                field: ExpectField::StatusCode,
+                                operation: ExpectOperation::Equals,
+                                value: "200".to_owned(),
+                            }
+                        ]
+                    ),
+                },
+            ],
+            schedule: ProbeScheduleParameters {
+                initial_delay: 0,
+                interval: 0,
+            },
+            alerts: None,
+        };
+
+        story.probe_and_store_result(app_state.clone()).await;
+
+        let story_result_map = app_state.story_results.read().unwrap();
+        let results = &story_result_map[story_name];
+        assert_eq!(1, results.len());
+        let story_result = &results[0];
+        assert_eq!(true, story_result.success);
+        assert_eq!(2, story_result.step_results.len());
+    }
+
 }

@@ -38,7 +38,6 @@ pub fn substitute_input_parameters(input_parameters: &Option<ProbeInputParameter
 
 pub fn substitute_variables_in_headers(headers: &HashMap<String, String>, variables: &StoryVariables) -> HashMap<String, String> {
     headers.iter().map(|(key, value)| {
-        // Substitute variables in both the key and the value
         let substituted_key = substitute_variables(key, variables);
         let substituted_value = substitute_variables(value, variables);
         (substituted_key, substituted_value)
@@ -185,7 +184,6 @@ async fn test_substitute_variable_doesnt_exist_in_json() {
         "other_field": "value"
     }"#;
 
-    // Simulate variables from story
     let variables = StoryVariables {
         steps: HashMap::from([
             ("get-token".to_string(), StepVariables{
@@ -202,7 +200,6 @@ async fn test_substitute_variable_doesnt_exist_in_json() {
 async fn test_substitute_variable_step_doesnt_exist() {
     let content = r#"field: ${{steps.get-token.response.body.invalid}}"#.to_owned();
 
-    // Simulate variables from story
     let variables = StoryVariables {
         steps: HashMap::new()
     };
@@ -210,3 +207,5 @@ async fn test_substitute_variable_step_doesnt_exist() {
     let result = substitute_variables(&content, &variables);
     assert_eq!("field: ".to_owned(), result);
 }
+
+// TODO test what happens with spaces in the ${{ steps.etc }}
