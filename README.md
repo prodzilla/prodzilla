@@ -105,13 +105,13 @@ stories:
 
 One unique aspect of Prodzilla is the ability to substitute in values from earlier steps, or generated values, as in the example above. Prodzilla currently supports the following variable substitutions.
 
-Note that if a step name is used in a parameter but does not yet exist, Prodzilla will default to substituting an empty string.
-
 | Substitute Value                             | Behaviour                                                                                                            |
 |----------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
 | ${{steps.step-name.response.body}}           | Inserts the whole response body from the given step.                                                                 |
 | ${{steps.step-name.response.body.fieldName}} | Inserts the value of a specific JSON field from a response body from a given step. Doesn't currently support arrays. |
-| ${{generate.uuid}}                           | Inserts a brand new generated UUID.                                                                                  |
+| ${{generate.uuid}}                           | Inserts a generated UUID.                                                                                  |
+
+Note that if a step name is used in a parameter but does not yet exist, Prodzilla will default to substituting an empty string.
 
 ### Expectations
 
@@ -235,7 +235,8 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
 - Complex Tests
     - Retries
     - Chained queries :white_check_mark:
-    - Parameters in queries :bricks:
+    - Parameters in queries :white_check_mark:
+    - Triggering probes manually :bricks:
     - Generation of fields e.g. UUIDs :bricks:
     - Parametrized tests
 - Easy clone and deploy
