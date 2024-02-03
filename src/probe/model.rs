@@ -60,6 +60,7 @@ pub struct ProbeResult {
 }
 
 // todo track application errors
+// also track the request and response bodies that were sent now that variables exist
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProbeResponse {
     pub timestamp_received: DateTime<Utc>,
@@ -91,7 +92,6 @@ pub struct StoryResult {
     pub success: bool,
     pub step_results: Vec<StepResult>,
 }
-
 
 pub struct StepResult {
     pub step_name: String,
