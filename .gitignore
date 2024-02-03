@@ -16,4 +16,4 @@ Cargo.lock
 *.pdb
 
 # "projects should contain only what is needed to function"
-.vscode
+.vscode/
