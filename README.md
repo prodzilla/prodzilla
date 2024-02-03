@@ -14,6 +14,7 @@ To be part of the community, or for any questions, join our [Discord](https://di
 - [Configuring Synthetic Monitors](#configuring-synthetic-monitors)
     - [Probes](#probes)
     - [Stories](#stories)
+    - [Variables](#variables)
     - [Expectations](#expectations)
 - [Notifications for Failures](#notifications-for-failures)
 - [Prodzilla Server Endpoints](#prodzilla-server-endpoints)
