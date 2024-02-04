@@ -17,7 +17,7 @@ probes:
       - url: https://notify.me/some/path
 
 stories:
-  - name: Get IP Address Info User Flow
+  - name: get-ip-user-flow
     steps:
       - name: get-ip
         url: https://api.ipify.org/?format=json

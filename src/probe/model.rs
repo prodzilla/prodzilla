@@ -86,6 +86,7 @@ pub struct Step {
     pub expectations: Option<Vec<ProbeExpectation>>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StoryResult {
     pub story_name: String,
     pub timestamp_started: DateTime<Utc>,
@@ -93,10 +94,12 @@ pub struct StoryResult {
     pub step_results: Vec<StepResult>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StepResult {
     pub step_name: String,
     pub timestamp_started: DateTime<Utc>,
     pub success: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub response: Option<ProbeResponse>,
 }
 
