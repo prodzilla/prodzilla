@@ -1,15 +1,15 @@
 # Prodzilla 🦖
 
-Prodzilla is a modern synthetic monitoring tool built in Rust. It's focused on testing complex user flows in production, whilst working towards natural human readability.
+Prodzilla is a modern synthetic monitoring tool built in Rust. It's focused on testing complex user flows in production, whilst maintaining human readability.
 
-Prodzilla supports emulating simple and complex user flows through configuration in just a yaml file. It enables chained requests to APIs, passing of values from one response to another request, verifying responses are as expected, and outputting alerts via webhooks on failures. It exposes a suite of endpoints that allow viewing results in json, or manual triggering of probes. May add a UI in future.
+Prodzilla supports chained requests to APIs, passing of values from one response to another request, verifying responses are as expected, and outputting alerts via webhooks on failures. It also exposes a suite of endpoints that allow viewing results in json, or manual triggering of probes. May add a UI in future.
 
 It's also lightning fast, runs with < 5mb of ram, and is free to host on Shuttle.
 
 The long-term goals of Prodzilla are:
-- To reduce divergence and duplication of code between blackbox, end-to-end testing and production observability
-- To avoid situations where documented system behaviour is out of date, or system behaviour in specific situations is totally unknown
-- To make testing in production easier - through features such as marking test requests
+- Reduce divergence and duplication of code between blackbox, end-to-end testing and production observability
+- Avoid situations where documented system behaviour is out of date, or system behaviour in specific situations is totally unknown
+- Make testing in production easier
 
 To be part of the community, or for any questions, join our [Discord](https://discord.gg/ud55NhraUm) or get in touch at [prodzilla.io](https://prodzilla.io/).
 
