@@ -18,6 +18,9 @@ To be part of the community, or for any questions, join our [Discord](https://di
     - [Expectations](#expectations)
 - [Notifications for Failures](#notifications-for-failures)
 - [Prodzilla Server Endpoints](#prodzilla-server-endpoints)
+    - [Get Probes and Stories](#get-probes-and-stories)
+    - [Get Probe and Story Results](#get-probe-and-story-results)
+    - [Trigger Probe or Story](#trigger-probe-or-story-in-development)
 - [Deploying on Shuttle for free](#deploying-on-shuttle-for-free)
 - [Feature Roadmap](#feature-roadmap)
 
@@ -146,46 +149,72 @@ Slack, OpsGenie, and PagerDuty notification integrations are planned.
 
 ## Prodzilla Server Endpoints
 
-You can visit `localhost:3000/probe_results` to get the latest 100 probe results for each probe you've initialised, which will look like this:
+Prodzilla also exposes a web server, which you can use to retrieve details about probes and stories, or trigger them. When running locally, these will exist at `localhost:3000`, e.g. `localhost:3000/stories`.
+
+
+### Get Probes and Stories
+
+These endpoints output the running probes and stories, as well as their current status.
+
+Paths:
+- /probes
+- /stories
+
+Example:
 
 ```json
-{
-    "Prodzilla Github": [
-        {
-            "probe_name": "Prodzilla Github",
-            "timestamp_started": "2024-01-08T09:14:14.051667600Z",
-            "success": true,
-            "response": {
-                "timestamp": "2024-01-08T09:14:15.259735200Z",
-                "status_code": 200,
-                "body": "<!DOCTYPE html>\n<html..."
-            }
-        },
-        {
-            "probe_name": "Prodzilla Github",
-            "timestamp_started": "2024-01-08T09:14:24.053560100Z",
-            "success": true,
-            "response": {
-                "timestamp": "2024-01-08T09:14:24.082027200Z",
-                "status_code": 200,
-                "body": "<!DOCTYPE html>\n<html..."
-            }
-        }
-    ],
-    "Webhook Receiver Probe": [
-        {
-            "probe_name": "Webhook Receiver Probe",
-            "timestamp_started": "2024-01-08T09:14:11.052497Z",
-            "success": true,
-            "response": {
-                "timestamp": "2024-01-08T09:14:12.621906Z",
-                "status_code": 200,
-                "body": "This URL has no default content configured. <a href=\"https://webhook.site/#!/54a9a526-c104-42a7-9b76-788e897390d8\">View in Webhook.site</a>."
-            }
-        }
-    ]
-}
+[
+    {
+        "name": "get-ip-user-flow",
+        "status": "OK", //  or "FAILING"
+        "last_probed": "2024-02-05T10:01:10.665835200Z"
+    }
+    ...
+]
 ```
+
+### Get Probe and Story Results
+
+These endpoints output all of the results for a probe or story. Note that if you want to debug a failing request and want to see the response
+
+Paths:
+- /probes/{name}/results
+- /stories/{name}/results
+
+Query Parameters:
+- `show_response`: bool - This determines whether the response, including the body, will be output - useful for debugging a failing request. Defaults to false.
+
+Example (of stories, probes will look slightly different):
+```json
+[
+    {
+        "story_name": "get-ip-user-flow",
+        "timestamp_started": "2024-02-05T10:02:40.670211600Z",
+        "success": true,
+        "step_results": [
+            {
+                "step_name": "get-ip",
+                "timestamp_started": "2024-02-05T10:02:40.670318700Z",
+                "success": true
+            },
+            {
+                "step_name": "get-location",
+                "timestamp_started": "2024-02-05T10:02:40.931422100Z",
+                "success": true
+            }
+        ]
+    }
+    ...
+]
+```
+
+### Trigger Probe or Story (In Development)
+
+These endpoints will allow you to trigger a probe or story immediately. They're currently in development.
+
+Paths:
+- /probes/{name}/trigger
+- /stories{name}/trigger
 
 ## Deploying on Shuttle for Free
 
@@ -237,7 +266,7 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
     - Chained queries :white_check_mark:
     - Parameters in queries :white_check_mark:
     - Triggering probes manually :bricks:
-    - Generation of fields e.g. UUIDs :bricks:
+    - Generation of fields e.g. UUIDs :white_check_mark:
     - Parametrized tests
 - Easy clone and deploy
     - On Shuttle :white_check_mark:
@@ -245,4 +274,4 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
     - Standalone easy-to-install image
     - Github Actions integration to trigger tests / use as smoke tests
 - Otel Support
-    - TraceIds for every request
+    - TraceIds for every request :bricks:
