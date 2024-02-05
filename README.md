@@ -180,14 +180,14 @@ Example:
 
 ### Get Probe and Story Results
 
-These endpoints output all of the results for a probe or story. Note that if you want to debug a failing request and want to see the response
+These endpoints output all of the results for a probe or story.
 
 Paths:
 - /probes/{name}/results
 - /stories/{name}/results
 
 Query Parameters:
-- `show_response`: bool - This determines whether the response, including the body, will be output - useful for debugging a failing request. Defaults to false.
+- show_response: bool - This determines whether the response, including the body, is output. Defaults to false.
 
 Example (of stories, probes will look slightly different):
 ```json
