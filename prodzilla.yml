@@ -17,7 +17,7 @@ probes:
       - url: https://notify.me/some/path
 
 stories:
-  - name: Get IP Address Info User Flow
+  - name: get-ip-user-flow
     steps:
       - name: get-ip
         url: https://api.ipify.org/?format=json
@@ -27,7 +27,7 @@ stories:
             operation: Equals 
             value: "200"
       - name: get-location
-        url: https://ipinfo.io/149.167.5.69/geo # will use ${{ steps.get-ip.body.ip }} in future
+        url: https://ipinfo.io/${{ steps.get-ip.body.ip }}/geo
         http_method: GET
         expectations:
           - field: StatusCode

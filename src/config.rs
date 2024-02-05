@@ -35,7 +35,7 @@ mod config_tests {
         let config = config_result.as_ref().unwrap();
 
         // Perform multiple tests using borrowed references
-        assert_eq!(1, config.probes.len(), "Probes length should be 2");
+        assert_eq!(1, config.probes.len(), "Probes length should be 1");
         assert_eq!(1, config.stories.len(), "Stories length should be 1"); 
     }
 }

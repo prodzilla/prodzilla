@@ -1,10 +1,15 @@
 # Prodzilla 🦖
 
-Prodzilla is a modern synthetic monitoring tool built in Rust. It's focused on surfacing whether existing behaviour in production is as expected in a human-readable format, so that stakeholders, or even customers, can contribute to system verification.
+Prodzilla is a modern synthetic monitoring tool built in Rust. It's focused on testing complex user flows in production, whilst working towards natural human readability.
 
-It supports sending custom requests, verifying responses are as expected, and outputting alerts via webhooks, or viewing results in json from a web server. May add a UI in future.
+Prodzilla supports emulating simple and complex user flows through configuration in just a yaml file. It enables chained requests to APIs, passing of values from one response to another request, verifying responses are as expected, and outputting alerts via webhooks on failures. It exposes a suite of endpoints that allow viewing results in json, or manual triggering of probes. May add a UI in future.
 
-It's also lightning fast, runs with ~8mb of ram, and free to host on Shuttle - all thanks to Rust.
+It's also lightning fast, runs with < 5mb of ram, and is free to host on Shuttle.
+
+The long-term goals of Prodzilla are:
+- To reduce divergence and duplication of code between blackbox, end-to-end testing and production observability
+- To avoid situations where documented system behaviour is out of date, or system behaviour in specific situations is totally unknown
+- To make testing in production easier - through features such as marking test requests
 
 To be part of the community, or for any questions, join our [Discord](https://discord.gg/ud55NhraUm) or get in touch at [prodzilla.io](https://prodzilla.io/).
 
@@ -14,9 +19,13 @@ To be part of the community, or for any questions, join our [Discord](https://di
 - [Configuring Synthetic Monitors](#configuring-synthetic-monitors)
     - [Probes](#probes)
     - [Stories](#stories)
+    - [Variables](#variables)
     - [Expectations](#expectations)
 - [Notifications for Failures](#notifications-for-failures)
 - [Prodzilla Server Endpoints](#prodzilla-server-endpoints)
+    - [Get Probes and Stories](#get-probes-and-stories)
+    - [Get Probe and Story Results](#get-probe-and-story-results)
+    - [Trigger Probe or Story](#trigger-probe-or-story-in-development)
 - [Deploying on Shuttle for free](#deploying-on-shuttle-for-free)
 - [Feature Roadmap](#feature-roadmap)
 
@@ -72,7 +81,7 @@ A complete Probe config looks as follows:
 
 ### Stories
 
-Stories define a chain of calls to different endpoints, to emulate the flow a real user would go through. Values from the response of earlier calls can be input to the request of another.
+Stories define a chain of calls to different endpoints, to emulate the flow a real user would go through. Values from the response of earlier calls can be input to the request of another using the ${{}} syntax.
 
 ```yml
 stories:
@@ -86,7 +95,7 @@ stories:
             operation: Equals 
             value: "200"
       - name: get-location
-        url: https://ipinfo.io/149.167.5.69/geo # will use ${{ steps.get-ip.body.ip }} in future
+        url: https://ipinfo.io/${{steps.get-ip.response.body.ip}}/geo
         http_method: GET
         expectations:
           - field: StatusCode
@@ -99,6 +108,18 @@ stories:
       - url: https://webhook.site/54a9a526-c104-42a7-9b76-788e897390d8 
 
 ```
+
+### Variables
+
+One unique aspect of Prodzilla is the ability to substitute in values from earlier steps, or generated values, as in the example above. Prodzilla currently supports the following variable substitutions.
+
+| Substitute Value                             | Behaviour                                                                                                            |
+|----------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
+| ${{steps.step-name.response.body}}           | Inserts the whole response body from the given step.                                                                 |
+| ${{steps.step-name.response.body.fieldName}} | Inserts the value of a specific JSON field from a response body from a given step. Doesn't currently support arrays. |
+| ${{generate.uuid}}                           | Inserts a generated UUID.                                                                                  |
+
+Note that if a step name is used in a parameter but does not yet exist, Prodzilla will default to substituting an empty string.
 
 ### Expectations
 
@@ -133,46 +154,72 @@ Slack, OpsGenie, and PagerDuty notification integrations are planned.
 
 ## Prodzilla Server Endpoints
 
-You can visit `localhost:3000/probe_results` to get the latest 100 probe results for each probe you've initialised, which will look like this:
+Prodzilla also exposes a web server, which you can use to retrieve details about probes and stories, or trigger them. When running locally, these will exist at `localhost:3000`, e.g. `localhost:3000/stories`.
+
+
+### Get Probes and Stories
+
+These endpoints output the running probes and stories, as well as their current status.
+
+Paths:
+- /probes
+- /stories
+
+Example:
 
 ```json
-{
-    "Prodzilla Github": [
-        {
-            "probe_name": "Prodzilla Github",
-            "timestamp_started": "2024-01-08T09:14:14.051667600Z",
-            "success": true,
-            "response": {
-                "timestamp": "2024-01-08T09:14:15.259735200Z",
-                "status_code": 200,
-                "body": "<!DOCTYPE html>\n<html..."
-            }
-        },
-        {
-            "probe_name": "Prodzilla Github",
-            "timestamp_started": "2024-01-08T09:14:24.053560100Z",
-            "success": true,
-            "response": {
-                "timestamp": "2024-01-08T09:14:24.082027200Z",
-                "status_code": 200,
-                "body": "<!DOCTYPE html>\n<html..."
-            }
-        }
-    ],
-    "Webhook Receiver Probe": [
-        {
-            "probe_name": "Webhook Receiver Probe",
-            "timestamp_started": "2024-01-08T09:14:11.052497Z",
-            "success": true,
-            "response": {
-                "timestamp": "2024-01-08T09:14:12.621906Z",
-                "status_code": 200,
-                "body": "This URL has no default content configured. <a href=\"https://webhook.site/#!/54a9a526-c104-42a7-9b76-788e897390d8\">View in Webhook.site</a>."
-            }
-        }
-    ]
-}
+[
+    {
+        "name": "get-ip-user-flow",
+        "status": "OK", //  or "FAILING"
+        "last_probed": "2024-02-05T10:01:10.665835200Z"
+    }
+    ...
+]
 ```
+
+### Get Probe and Story Results
+
+These endpoints output all of the results for a probe or story. Note that if you want to debug a failing request and want to see the response
+
+Paths:
+- /probes/{name}/results
+- /stories/{name}/results
+
+Query Parameters:
+- `show_response`: bool - This determines whether the response, including the body, will be output - useful for debugging a failing request. Defaults to false.
+
+Example (of stories, probes will look slightly different):
+```json
+[
+    {
+        "story_name": "get-ip-user-flow",
+        "timestamp_started": "2024-02-05T10:02:40.670211600Z",
+        "success": true,
+        "step_results": [
+            {
+                "step_name": "get-ip",
+                "timestamp_started": "2024-02-05T10:02:40.670318700Z",
+                "success": true
+            },
+            {
+                "step_name": "get-location",
+                "timestamp_started": "2024-02-05T10:02:40.931422100Z",
+                "success": true
+            }
+        ]
+    }
+    ...
+]
+```
+
+### Trigger Probe or Story (In Development)
+
+These endpoints will allow you to trigger a probe or story immediately. They're currently in development.
+
+Paths:
+- /probes/{name}/trigger
+- /stories{name}/trigger
 
 ## Deploying on Shuttle for Free
 
@@ -205,17 +252,15 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
     - Response body :white_check_mark:
     - Specific fields
     - Regex
-- Authentication
-    - Bearer Tokens
-    - Requests
-- Yaml Objects - Reusable parameters
+- Yaml Objects / Reusable parameters / Human Readability
     - Request bodies
     - Authenticated users
     - Validation
 - Result storage
     - NativeDB?
-- UI / Output
+- Output
     - JSON output of results for all probes :white_check_mark:
+    - Prometheus Endpoint
     - UI output of results for all probes
 - Forwarding alerts
     - Webhooks :white_check_mark:
@@ -224,7 +269,9 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
 - Complex Tests
     - Retries
     - Chained queries :white_check_mark:
-    - Parameters in queries :bricks:
+    - Parameters in queries :white_check_mark:
+    - Triggering probes manually :bricks:
+    - Generation of fields e.g. UUIDs :white_check_mark:
     - Parametrized tests
 - Easy clone and deploy
     - On Shuttle :white_check_mark:
@@ -232,4 +279,4 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
     - Standalone easy-to-install image
     - Github Actions integration to trigger tests / use as smoke tests
 - Otel Support
-    - TraceIds for every request
+    - TraceIds for every request :bricks:
