@@ -172,6 +172,7 @@ mod probe_logic_tests {
     use std::sync::Arc;
 
     use crate::app_state::AppState;
+    use crate::config::Config;
     use crate::probe::model::{ExpectField, ExpectOperation, ProbeAlert, ProbeExpectation, ProbeInputParameters, ProbeScheduleParameters, Step, Story};
     use crate::probe::probe_logic::Monitorable;
     use wiremock::matchers::{header, method, path};
@@ -183,7 +184,7 @@ mod probe_logic_tests {
         let step1_path = "/test1";
         let step2_path = "/test2";
         let story_name = "User Flow";
-        let app_state = Arc::new(AppState::new());
+        let app_state = Arc::new(AppState::new(Config{probes: vec![], stories: vec![]}));
 
         Mock::given(method("GET"))
             .and(path(step1_path))
@@ -241,7 +242,7 @@ mod probe_logic_tests {
         let step2_path = "/test2";
         let alert_path = "/alert-test";
         let story_name = "User Flow";
-        let app_state = Arc::new(AppState::new());
+        let app_state = Arc::new(AppState::new(Config{probes: vec![], stories: vec![]}));
 
         Mock::given(method("GET"))
             .and(path(step1_path))
@@ -321,7 +322,7 @@ mod probe_logic_tests {
 
 
         let story_name = "User Flow";
-        let app_state = Arc::new(AppState::new());
+        let app_state = Arc::new(AppState::new(Config{probes: vec![], stories: vec![]}));
 
         Mock::given(method("GET"))
             .and(path(step1_path))

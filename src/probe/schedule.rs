@@ -63,6 +63,7 @@ mod schedule_tests {
     use crate::AppState;
     use std::sync::Arc;
     use std::time::Duration;
+    use std::vec;
 
     use reqwest::StatusCode;
     use wiremock::matchers::{method, path};
@@ -98,12 +99,13 @@ mod schedule_tests {
         );
 
         let config = Config{
-            probes 
+            probes: vec![probe],
+            stories: vec![]
         };
 
-        let app_state = Arc::new(AppState::new());
+        let app_state = Arc::new(AppState::new(config));
 
-        schedule_probes(vec![probe], app_state);
+        schedule_probes(&app_state.config.probes, app_state.clone());
 
         // As delay and interval are 0, we'd expect that within 15 seconds our probe has been hit twice
         // One for first probe, then 10s timeout on request, then second probe
@@ -131,9 +133,14 @@ mod schedule_tests {
             "".to_owned(),
         );
 
-        let app_state = Arc::new(AppState::new());
+        let config = Config{
+            probes: vec![probe],
+            stories: vec![]
+        };
 
-        schedule_probes(vec![probe], app_state);
+        let app_state = Arc::new(AppState::new(config));
+
+        schedule_probes(&app_state.config.probes, app_state.clone());
 
         // As delay and interval are 0, we'd expect that within 15 seconds our probe has been hit twice
         // One for first probe, then 10s timeout on request, then second probe
