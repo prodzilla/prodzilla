@@ -257,13 +257,15 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
     - Authenticated users
     - Validation
 - Result storage
-    - NativeDB?
+    - In Memory :white_check_mark:
+    - In a Database
 - Output
     - JSON output of results for all probes :white_check_mark:
     - Prometheus Endpoint
     - UI output of results for all probes
 - Forwarding alerts
     - Webhooks :white_check_mark:
+    - Slack :bricks:
     - Email
     - Splunk / OpsGenie / PagerDuty / slack integrations?
 - Complex Tests

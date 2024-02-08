@@ -19,7 +19,9 @@ const PRODZILLA_YAML: &str = "prodzilla.yml";
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     init_tracing();
 
-    let app_state = Arc::new(AppState::new());
+    let config = load_config(PRODZILLA_YAML).await?;
+
+    let app_state = Arc::new(AppState::new(config));
 
     start_monitoring(app_state.clone()).await?;
 
@@ -35,9 +37,8 @@ fn init_tracing() {
 }
 
 async fn start_monitoring(app_state: Arc<AppState>) -> Result<(), Box<dyn std::error::Error>> {
-    let config = load_config(PRODZILLA_YAML).await?;
-    schedule_probes(config.probes, app_state.clone());
-    schedule_stories(config.stories, app_state);
+    schedule_probes(&app_state.config.probes, app_state.clone());
+    schedule_stories(&app_state.config.stories, app_state.clone());
     Ok(())
 }
 

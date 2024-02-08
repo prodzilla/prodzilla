@@ -9,7 +9,8 @@ use crate::AppState;
 
 use super::model::Story;
 
-pub fn schedule_probes(probes: Vec<Probe>, app_state: Arc<AppState>) {
+// TODO: Can update these signatures to just use app_state
+pub fn schedule_probes(probes: &Vec<Probe>, app_state: Arc<AppState>) {
     for probe in probes {
         let probe_clone = probe.clone();
         let task_state = app_state.clone();
@@ -19,7 +20,7 @@ pub fn schedule_probes(probes: Vec<Probe>, app_state: Arc<AppState>) {
     }
 }
 
-pub fn schedule_stories(stories: Vec<Story>, app_state: Arc<AppState>) {
+pub fn schedule_stories(stories: &Vec<Story>, app_state: Arc<AppState>) {
     for story in stories {
         let story_clone = story.clone();
         let task_state = app_state.clone();
@@ -54,6 +55,7 @@ pub async fn probing_loop<T: Monitorable>(monitorable: &T, app_state: Arc<AppSta
 #[cfg(test)]
 mod schedule_tests {
 
+    use crate::config::Config;
     use crate::probe::schedule::schedule_probes;
     use crate::test_utils::test_utils::{
         probe_get_with_expected_status, probe_get_with_expected_status_and_alert,
@@ -94,6 +96,10 @@ mod schedule_tests {
             "".to_owned(),
             format!("{}{}", mock_server.uri(), alert_url.to_owned()),
         );
+
+        let config = Config{
+            probes 
+        };
 
         let app_state = Arc::new(AppState::new());
 
