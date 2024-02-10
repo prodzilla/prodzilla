@@ -5,7 +5,7 @@ use axum::{
 use std::sync::Arc;
 use tracing::debug;
 
-use crate::{app_state::AppState, probe::model::ProbeResult};
+use crate::{app_state::AppState, probe::{model::ProbeResult, probe_logic::Monitorable}};
 
 use super::model::{ProbeQueryParams, ProbeResponse};
 
@@ -53,9 +53,16 @@ pub async fn probes(Extension(state): Extension<Arc<AppState>>) -> Json<Vec<Prob
     return Json(probes);
 }
 
-pub async fn probe_trigger(Path(name): Path<String>) -> &'static str {
+pub async fn probe_trigger(Path(name): Path<String>,
+Extension(state): Extension<Arc<AppState>>) -> Json<ProbeResult> {
     debug!("Probe trigger called");
 
-    // Placeholder for /probes/{name}/trigger endpoint
-    unimplemented!();
+    let probe = &state.config.probes.iter().find(|x| x.name == name).unwrap();
+
+    probe.probe_and_store_result(state.clone()).await;
+
+    let lock = state.probe_results.read().unwrap();
+    let probe_results = lock.get(&name).unwrap();
+
+    Json(probe_results.last().unwrap().clone())
 }
