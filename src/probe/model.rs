@@ -56,6 +56,7 @@ pub struct ProbeResult {
     pub probe_name: String,
     pub timestamp_started: DateTime<Utc>,
     pub success: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub response: Option<ProbeResponse>,
 }
 
