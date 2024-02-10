@@ -284,7 +284,7 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
     - Retries
     - Chained queries :white_check_mark:
     - Parameters in queries :white_check_mark:
-    - Triggering probes manually :bricks:
+    - Triggering probes manually :white_check_mark:
     - Generation of fields e.g. UUIDs :white_check_mark:
     - Parametrized tests
 - Easy clone and deploy
