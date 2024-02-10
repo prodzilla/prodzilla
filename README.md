@@ -165,7 +165,7 @@ Paths:
 - /probes
 - /stories
 
-Example:
+Example Response:
 
 ```json
 [
@@ -189,7 +189,7 @@ Paths:
 Query Parameters:
 - show_response: bool - This determines whether the response, including the body, is output. Defaults to false.
 
-Example (of stories, probes will look slightly different):
+Example Response (for stories, probes will look slightly different):
 ```json
 [
     {
@@ -215,11 +215,23 @@ Example (of stories, probes will look slightly different):
 
 ### Trigger Probe or Story (In Development)
 
-These endpoints will allow you to trigger a probe or story immediately. They're currently in development.
+These endpoints will trigger a probe or story immediately, store the result alongside the scheduled results, and return the result.
 
 Paths:
 - /probes/{name}/trigger
 - /stories{name}/trigger
+
+Example Response (for stories, probes will look slightly different):
+```json
+{
+    "story_name": "get-ip-user-flow",
+    "timestamp_started": "2024-02-10T00:36:05.768730400Z",
+    "success": true,
+    "step_results": [
+        ...
+    ]
+}
+```
 
 ## Deploying on Shuttle for Free
 
