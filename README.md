@@ -265,9 +265,9 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
     - Specific fields
     - Regex
 - Yaml Objects / Reusable parameters / Human Readability
-    - Request bodies
-    - Authenticated users
-    - Validation
+    - Reusable Request bodies
+    - Reusable Authenticated users
+    - Reusable Validation
 - Result storage
     - In Memory :white_check_mark:
     - In a Database
