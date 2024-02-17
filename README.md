@@ -1,11 +1,6 @@
 <p align="center">
-  <img alt="prodzillalogo" src="">
+![Prodzilla Logo](https://github.com/prodzilla/prodzilla/assets/22592280/888fbb3a-b5b2-4d6a-8986-8cde48fe0024)
 </p>
-
-
-
-![- Production Monitoring](https://github.com/prodzilla/prodzilla/assets/22592280/888fbb3a-b5b2-4d6a-8986-8cde48fe0024)
-
 
 Prodzilla is a modern synthetic monitoring tool built in Rust. It's focused on testing complex user flows in production, whilst maintaining human readability.
 
