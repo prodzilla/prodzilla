@@ -4,10 +4,15 @@ use std::time::Duration;
 use crate::errors::MapToSendError;
 use chrono::Utc;
 use lazy_static::lazy_static;
+use opentelemetry_sdk::propagation::TraceContextPropagator;
+use reqwest::header::HeaderMap;
 use reqwest::RequestBuilder;
 
 use super::model::EndpointResult;
 use super::model::ProbeInputParameters;
+use opentelemetry::trace::TraceContextExt;
+use opentelemetry::Context;
+use opentelemetry::{global, trace::Tracer};
 
 const REQUEST_TIMEOUT_SECS: u64 = 10;
 
@@ -23,6 +28,20 @@ pub async fn call_endpoint(
     url: &String,
     input_parameters: &Option<ProbeInputParameters>,
 ) -> Result<EndpointResult, Box<dyn std::error::Error + Send>> {
+    // Initialize OpenTelemetry with a no-op tracer for simplicity
+    let _ = global::set_text_map_propagator(TraceContextPropagator::new());
+
+    // Create a new trace and span
+    let tracer = global::tracer("example_tracer"); // todo make lazy static
+    let span = tracer.start("operation_name");
+    let cx = Context::current_with_span(span);
+
+    // Use OpenTelemetry's context propagation to inject the trace context into headers
+    let mut headers = HeaderMap::new();
+    global::get_text_map_propagator(|propagator| {
+        propagator.inject_context(&cx, &mut opentelemetry_http::HeaderInjector(&mut headers));
+    });
+
     let timestamp_start = Utc::now();
 
     let request = build_request(http_method, url, input_parameters)?;
@@ -34,11 +53,11 @@ pub async fn call_endpoint(
 
     let timestamp_response = Utc::now();
 
-    return Ok(EndpointResult{
+    return Ok(EndpointResult {
         timestamp_request_started: timestamp_start,
         timestamp_response_received: timestamp_response,
         status_code: response.status().as_u16() as u32,
-        body: response.text().await.map_to_send_err()?
+        body: response.text().await.map_to_send_err()?,
     });
 }
 
@@ -70,8 +89,8 @@ mod http_tests {
 
     use std::time::Duration;
 
-    use crate::probe::http_probe::call_endpoint;
     use crate::probe::expectations::validate_response;
+    use crate::probe::http_probe::call_endpoint;
     use crate::test_utils::test_utils::{
         probe_get_with_expected_status, probe_post_with_expected_body,
     };
@@ -97,9 +116,11 @@ mod http_tests {
             format!("{}/test", mock_server.uri()),
             "".to_owned(),
         );
-        let endpoint_result 
-            = call_endpoint(&probe.http_method, &probe.url, &probe.with).await.unwrap();
-        let check_expectations_result = validate_response(&probe.name, &endpoint_result, &probe.expectations);
+        let endpoint_result = call_endpoint(&probe.http_method, &probe.url, &probe.with)
+            .await
+            .unwrap();
+        let check_expectations_result =
+            validate_response(&probe.name, &endpoint_result, &probe.expectations);
 
         assert_eq!(check_expectations_result, true);
     }
@@ -121,9 +142,8 @@ mod http_tests {
             format!("{}/test", mock_server.uri()),
             body.to_string(),
         );
-        let endpoint_result 
-            = call_endpoint(&probe.http_method, &probe.url, &probe.with).await;
-        
+        let endpoint_result = call_endpoint(&probe.http_method, &probe.url, &probe.with).await;
+
         assert!(endpoint_result.is_err());
     }
 
@@ -145,9 +165,11 @@ mod http_tests {
             format!("{}/test", mock_server.uri()),
             body.to_string(),
         );
-        let endpoint_result 
-            = call_endpoint(&probe.http_method, &probe.url, &probe.with).await.unwrap();
-        let check_expectations_result = validate_response(&probe.name, &endpoint_result, &probe.expectations);
+        let endpoint_result = call_endpoint(&probe.http_method, &probe.url, &probe.with)
+            .await
+            .unwrap();
+        let check_expectations_result =
+            validate_response(&probe.name, &endpoint_result, &probe.expectations);
 
         assert_eq!(check_expectations_result, true);
     }
@@ -171,9 +193,11 @@ mod http_tests {
             format!("{}/test", mock_server.uri()),
             request_body.to_owned(),
         );
-        let endpoint_result 
-            = call_endpoint(&probe.http_method, &probe.url, &probe.with).await.unwrap();
-        let check_expectations_result = validate_response(&probe.name, &endpoint_result, &probe.expectations);
+        let endpoint_result = call_endpoint(&probe.http_method, &probe.url, &probe.with)
+            .await
+            .unwrap();
+        let check_expectations_result =
+            validate_response(&probe.name, &endpoint_result, &probe.expectations);
 
         assert_eq!(check_expectations_result, true);
     }
