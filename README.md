@@ -41,7 +41,7 @@ The application parses the [prodzilla.yml](/prodzilla.yml) file to generate a li
 
 The bare minimum config required is: 
 
-```yml
+```yaml
 probes:
   - name: Your Probe Name
     url: https://yoururl.com/some/path
@@ -60,7 +60,7 @@ Probes define a single endpoint to be called with given parameters, and assert t
 
 A complete Probe config looks as follows:
 
-```yml
+```yaml
   - name: Your Post Url
     url: https://your.site/some/path
     http_method: POST
@@ -83,7 +83,7 @@ A complete Probe config looks as follows:
 
 Stories define a chain of calls to different endpoints, to emulate the flow a real user would go through. Values from the response of earlier calls can be input to the request of another using the ${{}} syntax.
 
-```yml
+```yaml
 stories:
   - name: Get IP Address Info User Flow
     steps:
@@ -132,7 +132,7 @@ Expectations can be put on Probes, or Steps within Stories.
 
 If expectations aren't met for a Probe or Story, a webhook will be sent to any urls configured within `alerts`.
 
-```yml
+```yaml
     - name: Probe or Story Name
       ...
       alerts:
@@ -141,7 +141,7 @@ If expectations aren't met for a Probe or Story, a webhook will be sent to any u
 ```
 
 The webhook looks as such:
-```yml
+```yaml
 {
   "message": "Probe failed.",
   "probe_name": "Your Probe",
