@@ -2,7 +2,7 @@
 
 Prodzilla is a modern synthetic monitoring tool built in Rust. It's focused on testing complex user flows in production, whilst maintaining human readability.
 
-Prodzilla supports chained requests to endpoints, passing of values from one response to another request, verifying responses are as expected, and outputting alerts via webhooks on failures. It also exposes an API that allows viewing results in json and manual triggering of probes. May add a UI in future.
+Prodzilla supports chained requests to endpoints, passing of values from one response to another request, verifying responses are as expected, and outputting alerts via webhooks on failures. It also exposes an API that allow viewing results in json and manual triggering of probes. It's integrated with OpenTelemetry, so includes a trace_id for every request made to your system. May add a UI in future.
 
 It's also lightning fast, runs with < 8mb of ram, and is free to host on [Shuttle](https://shuttle.rs/).
 
@@ -200,12 +200,14 @@ Example Response (for stories, probes will look slightly different):
             {
                 "step_name": "get-ip",
                 "timestamp_started": "2024-02-05T10:02:40.670318700Z",
-                "success": true
+                "success": true,
+                "trace_id": "4df1663f21766a4f498eb4ba09180e93"
             },
             {
                 "step_name": "get-location",
                 "timestamp_started": "2024-02-05T10:02:40.931422100Z",
-                "success": true
+                "success": true,
+                "trace_id": "28118007da1860cc5dd76c9128b14dee"
             }
         ]
     }
@@ -290,7 +292,8 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
 - Easy clone and deploy
     - On Shuttle :white_check_mark:
 - CI / CD Integration
-    - Standalone easy-to-install image
-    - Github Actions integration to trigger tests / use as smoke tests
+    - Standalone easy-to-install image :bricks:
+    - Github Actions integration to trigger tests / use as smoke tests :bricks:
 - Otel Support
-    - TraceIds for every request :bricks:
+    - TraceIds for every request :white_check_mark:
+

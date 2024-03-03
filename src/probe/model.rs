@@ -58,6 +58,8 @@ pub struct ProbeResult {
     pub success: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub response: Option<ProbeResponse>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trace_id: Option<String>,
 }
 
 // todo track application errors
@@ -102,6 +104,8 @@ pub struct StepResult {
     pub success: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub response: Option<ProbeResponse>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trace_id: Option<String>
 }
 
 pub struct EndpointResult {
@@ -109,6 +113,7 @@ pub struct EndpointResult {
     pub timestamp_response_received: DateTime<Utc>,
     pub status_code: u32,
     pub body: String,
+    pub trace_id: String,
 }
 
 impl EndpointResult {
