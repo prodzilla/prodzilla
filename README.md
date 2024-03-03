@@ -1,10 +1,10 @@
-# Prodzilla 🦖
+![- Production Monitoring (1)](https://github.com/prodzilla/prodzilla/assets/22592280/2a36189e-bce7-4aed-a1a1-9b9706c415d0)
 
 Prodzilla is a modern synthetic monitoring tool built in Rust. It's focused on testing complex user flows in production, whilst maintaining human readability.
 
 Prodzilla supports chained requests to endpoints, passing of values from one response to another request, verifying responses are as expected, and outputting alerts via webhooks on failures. It also exposes an API that allow viewing results in json and manual triggering of probes. It's integrated with OpenTelemetry, so includes a trace_id for every request made to your system. May add a UI in future.
 
-It's also lightning fast, runs with < 5mb of ram, and is free to host on [Shuttle](https://shuttle.rs/).
+It's also lightning fast, runs with < 8mb of ram, and is free to host on [Shuttle](https://shuttle.rs/).
 
 The long-term goals of Prodzilla are:
 - Reduce divergence and duplication of code between blackbox, end-to-end testing and production observability
@@ -41,7 +41,7 @@ The application parses the [prodzilla.yml](/prodzilla.yml) file to generate a li
 
 The bare minimum config required is: 
 
-```yml
+```yaml
 probes:
   - name: Your Probe Name
     url: https://yoururl.com/some/path
@@ -60,7 +60,7 @@ Probes define a single endpoint to be called with given parameters, and assert t
 
 A complete Probe config looks as follows:
 
-```yml
+```yaml
   - name: Your Post Url
     url: https://your.site/some/path
     http_method: POST
@@ -83,7 +83,7 @@ A complete Probe config looks as follows:
 
 Stories define a chain of calls to different endpoints, to emulate the flow a real user would go through. Values from the response of earlier calls can be input to the request of another using the ${{}} syntax.
 
-```yml
+```yaml
 stories:
   - name: Get IP Address Info User Flow
     steps:
@@ -132,7 +132,7 @@ Expectations can be put on Probes, or Steps within Stories.
 
 If expectations aren't met for a Probe or Story, a webhook will be sent to any urls configured within `alerts`.
 
-```yml
+```yaml
     - name: Probe or Story Name
       ...
       alerts:
@@ -141,7 +141,7 @@ If expectations aren't met for a Probe or Story, a webhook will be sent to any u
 ```
 
 The webhook looks as such:
-```yml
+```yaml
 {
   "message": "Probe failed.",
   "probe_name": "Your Probe",
@@ -296,3 +296,4 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
     - Github Actions integration to trigger tests / use as smoke tests :bricks:
 - Otel Support
     - TraceIds for every request :white_check_mark:
+
