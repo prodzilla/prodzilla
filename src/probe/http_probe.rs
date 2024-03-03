@@ -4,7 +4,9 @@ use std::time::Duration;
 use crate::errors::MapToSendError;
 use chrono::Utc;
 use lazy_static::lazy_static;
+use opentelemetry::trace::Span;
 use opentelemetry_sdk::propagation::TraceContextPropagator;
+use opentelemetry_sdk::trace::TracerProvider;
 use reqwest::header::HeaderMap;
 use reqwest::RequestBuilder;
 
@@ -28,23 +30,10 @@ pub async fn call_endpoint(
     url: &String,
     input_parameters: &Option<ProbeInputParameters>,
 ) -> Result<EndpointResult, Box<dyn std::error::Error + Send>> {
-    // Initialize OpenTelemetry with a no-op tracer for simplicity
-    let _ = global::set_text_map_propagator(TraceContextPropagator::new());
-
-    // Create a new trace and span
-    let tracer = global::tracer("example_tracer"); // todo make lazy static
-    let span = tracer.start("operation_name");
-    let cx = Context::current_with_span(span);
-
-    // Use OpenTelemetry's context propagation to inject the trace context into headers
-    let mut headers = HeaderMap::new();
-    global::get_text_map_propagator(|propagator| {
-        propagator.inject_context(&cx, &mut opentelemetry_http::HeaderInjector(&mut headers));
-    });
-
     let timestamp_start = Utc::now();
+    let (otel_headers, trace_id) = get_otel_headers();
 
-    let request = build_request(http_method, url, input_parameters)?;
+    let request = build_request(http_method, url, input_parameters, otel_headers)?;
     let response = request
         .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
         .send()
@@ -58,17 +47,43 @@ pub async fn call_endpoint(
         timestamp_response_received: timestamp_response,
         status_code: response.status().as_u16() as u32,
         body: response.text().await.map_to_send_err()?,
+        trace_id: trace_id
     });
+}
+
+fn get_otel_headers() -> (HeaderMap, String) {
+    
+    let tracer = global::tracer("prodzilla_tracer");
+    let span = tracer.start("prodzilla_call");
+    let cx = Context::current_with_span(span);
+
+    let mut headers = HeaderMap::new();
+    global::get_text_map_propagator(|propagator| {
+        propagator.inject_context(&cx, &mut opentelemetry_http::HeaderInjector(&mut headers));
+    });
+
+    let trace_id = cx.span().span_context().trace_id().to_string();
+
+    (headers, trace_id)
+}
+
+// Needs to be called to enable trace ids
+pub fn init_otel_tracing() {
+    let provider = TracerProvider::default();
+    global::set_tracer_provider(provider);
+    global::set_text_map_propagator(TraceContextPropagator::new());
 }
 
 fn build_request(
     http_method: &String,
     url: &String,
     input_parameters: &Option<ProbeInputParameters>,
+    otel_headers: HeaderMap
 ) -> Result<RequestBuilder, Box<dyn std::error::Error + Send>> {
     let method = reqwest::Method::from_str(http_method).map_to_send_err()?;
 
     let mut request = CLIENT.request(method, url);
+    request = request.headers(otel_headers);
 
     if let Some(probe_input_parameters) = input_parameters {
         if let Some(body) = &probe_input_parameters.body {
@@ -90,13 +105,13 @@ mod http_tests {
     use std::time::Duration;
 
     use crate::probe::expectations::validate_response;
-    use crate::probe::http_probe::call_endpoint;
+    use crate::probe::http_probe::{call_endpoint, init_otel_tracing};
     use crate::test_utils::test_utils::{
         probe_get_with_expected_status, probe_post_with_expected_body,
     };
 
     use reqwest::StatusCode;
-    use wiremock::matchers::{body_string, method, path};
+    use wiremock::matchers::{body_string, header_exists, header_regex, method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     // Note: These tests are a bit odd because they have been updated since a refactor
@@ -176,6 +191,7 @@ mod http_tests {
 
     #[tokio::test]
     async fn test_requests_post_200_with_body() {
+        init_otel_tracing();
         let mock_server = MockServer::start().await;
 
         let request_body = "request body";
@@ -184,7 +200,9 @@ mod http_tests {
         Mock::given(method("POST"))
             .and(path("/test"))
             .and(body_string(request_body.to_string()))
+            .and(header_exists("traceparent"))
             .respond_with(ResponseTemplate::new(200).set_body_string(expected_body.to_owned()))
+            .expect(1)
             .mount(&mock_server)
             .await;
 

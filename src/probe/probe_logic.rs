@@ -55,6 +55,7 @@ impl Monitorable for Story {
                         timestamp_started: endpoint_result.timestamp_request_started,
                         success: expectations_result,
                         response: Some(endpoint_result.to_probe_response()),
+                        trace_id: Some(endpoint_result.trace_id)
                     };
                     step_results.push(step_result);
 
@@ -74,6 +75,7 @@ impl Monitorable for Story {
                         success: false,
                         timestamp_started: Utc::now(),
                         response: None,
+                        trace_id: None
                     });
                     break;
                 }
@@ -127,6 +129,7 @@ impl Monitorable for Probe {
                     timestamp_started: endpoint_result.timestamp_request_started,
                     success: expectations_result,
                     response: Some(endpoint_result.to_probe_response()),
+                    trace_id: Some(endpoint_result.trace_id)
                 };
             }
             Err(e) => {
@@ -136,6 +139,7 @@ impl Monitorable for Probe {
                     timestamp_started: Utc::now(),
                     success: false,
                     response: None,
+                    trace_id: None
                 };
             }
         };

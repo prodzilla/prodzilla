@@ -5,6 +5,7 @@ mod errors;
 mod probe;
 mod web_server;
 
+use probe::http_probe::init_otel_tracing;
 use probe::schedule::schedule_probes;
 use probe::schedule::schedule_stories;
 use std::sync::Arc;
@@ -37,6 +38,8 @@ fn init_tracing() {
 }
 
 async fn start_monitoring(app_state: Arc<AppState>) -> Result<(), Box<dyn std::error::Error>> {
+    init_otel_tracing();
+    
     schedule_probes(&app_state.config.probes, app_state.clone());
     schedule_stories(&app_state.config.stories, app_state.clone());
     Ok(())
