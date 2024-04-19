@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::alerts::model::WebhookNotification;
+use crate::alerts::model::{SlackNotification, WebhookNotification};
 use crate::errors::MapToSendError;
 use crate::probe::model::ProbeAlert;
 use chrono::{DateTime, Utc};
@@ -35,22 +35,36 @@ pub async fn alert_if_failure(
     return Ok(());
 }
 
+fn alert_json(
+    url_to_alert: &String,
+    probe_name: String,
+    failure_timestamp: DateTime<Utc>,
+) -> Result<String, Box<dyn std::error::Error + Send>> {
+    let body_result = if url_to_alert.contains("https://hooks.slack.com") {
+        serde_json::to_string(&SlackNotification {
+            text: format!(
+                "Prodzilla probe {} failed at {}",
+                probe_name, failure_timestamp
+            ),
+        })
+    } else {
+        serde_json::to_string(&WebhookNotification {
+            message: "Probe failed.".to_owned(),
+            probe_name: probe_name,
+            failure_timestamp,
+        })
+    };
+    return body_result.map_to_send_err();
+}
+
 pub async fn send_alert(
     alert: &ProbeAlert,
     probe_name: String,
     failure_timestamp: DateTime<Utc>,
 ) -> Result<(), Box<dyn std::error::Error + Send>> {
-    // When we have other alert types, add them in some kind of switch here
-
     let mut request = CLIENT.post(&alert.url);
 
-    let request_body = WebhookNotification {
-        message: "Probe failed.".to_owned(),
-        probe_name: probe_name,
-        failure_timestamp,
-    };
-
-    let json = serde_json::to_string(&request_body).map_to_send_err()?;
+    let json = alert_json(&alert.url, probe_name, failure_timestamp)?;
     request = request.body(json);
 
     let alert_response = request
