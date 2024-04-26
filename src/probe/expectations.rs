@@ -13,13 +13,13 @@ pub fn validate_response(
 
     match expectations {
         Some(expect_back) => {
-            let validation_result = validate_response_internal(&expect_back, endpoint_result.status_code, &endpoint_result.body);
+            let validation_result = validate_response_internal(expect_back, endpoint_result.status_code, &endpoint_result.body);
             if validation_result {
                 debug!("Successful response for {}, as expected", step_name);
             } else {
                 debug!("Successful response for {}, not as expected!", step_name);
             }
-            return validation_result;
+            validation_result
         }
         None => {
 
@@ -30,7 +30,7 @@ pub fn validate_response(
                 "Successfully probed {}, no expectation so success is true",
                 step_name
             );
-            return true;
+            true
         }
     }
 }
@@ -43,27 +43,25 @@ pub fn validate_response_internal(
     let status_string = status_code.to_string();
 
     for expectation in expect {
-        let expectation_result: bool;
-        match expectation.field {
+        let expectation_result = match expectation.field {
             ExpectField::Body => {
-                expectation_result =
-                    validate_expectation(&expectation.operation, &expectation.value, &body);
+                validate_expectation(&expectation.operation, &expectation.value, body)
             }
             ExpectField::StatusCode => {
-                expectation_result = validate_expectation(
+                validate_expectation(
                     &expectation.operation,
                     &expectation.value,
                     &status_string,
-                );
+                )
             }
-        }
+        };
 
         if !expectation_result {
             return false;
         }
     }
 
-    return true;
+    true
 }
 
 fn validate_expectation(
@@ -73,19 +71,19 @@ fn validate_expectation(
 ) -> bool {
     match operation {
         ExpectOperation::Equals => {
-            return value == expected_value;
+            value == expected_value
         }
         ExpectOperation::Contains => {
-            return value.contains(expected_value);
+            value.contains(expected_value)
         }
         ExpectOperation::IsOneOf => {
-            let parts = expected_value.split("|");
+            let parts = expected_value.split('|');
             for part in parts {
                 if value == part {
                     return true;
                 }
             }
-            return false;
+            false
         }
     }
 }
@@ -97,14 +95,14 @@ async fn test_validate_expectations_equals() {
         &"Test".to_owned(),
         &"Test".to_owned(),
     );
-    assert_eq!(success_result, true);
+    assert!(success_result);
 
     let fail_result = validate_expectation(
         &ExpectOperation::Equals,
         &"Test123".to_owned(),
         &"Test".to_owned(),
     );
-    assert_eq!(fail_result, false);
+    assert!(!fail_result);
 }
 
 #[tokio::test]
@@ -114,14 +112,14 @@ async fn test_validate_expectations_contains() {
         &"Test".to_owned(),
         &"Test123".to_owned(),
     );
-    assert_eq!(success_result, true);
+    assert!(success_result);
 
     let fail_result = validate_expectation(
         &ExpectOperation::Contains,
         &"Test123".to_owned(),
         &"Test".to_owned(),
     );
-    assert_eq!(fail_result, false);
+    assert!(!fail_result);
 }
 
 #[tokio::test]
@@ -131,12 +129,12 @@ async fn test_validate_expectations_isoneof() {
         &"Test|Yes|No".to_owned(),
         &"Test".to_owned(),
     );
-    assert_eq!(success_result, true);
+    assert!(success_result);
 
     let fail_result = validate_expectation(
         &ExpectOperation::IsOneOf,
         &"Test|Yes|No".to_owned(),
         &"Yest".to_owned(),
     );
-    assert_eq!(fail_result, false);
+    assert!(!fail_result);
 }

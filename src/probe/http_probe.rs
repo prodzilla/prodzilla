@@ -4,7 +4,6 @@ use std::time::Duration;
 use crate::errors::MapToSendError;
 use chrono::Utc;
 use lazy_static::lazy_static;
-use opentelemetry::trace::Span;
 use opentelemetry_sdk::propagation::TraceContextPropagator;
 use opentelemetry_sdk::trace::TracerProvider;
 use reqwest::header::HeaderMap;
@@ -26,7 +25,7 @@ lazy_static! {
 }
 
 pub async fn call_endpoint(
-    http_method: &String,
+    http_method: &str,
     url: &String,
     input_parameters: &Option<ProbeInputParameters>,
 ) -> Result<EndpointResult, Box<dyn std::error::Error + Send>> {
@@ -42,13 +41,13 @@ pub async fn call_endpoint(
 
     let timestamp_response = Utc::now();
 
-    return Ok(EndpointResult {
+    Ok(EndpointResult {
         timestamp_request_started: timestamp_start,
         timestamp_response_received: timestamp_response,
         status_code: response.status().as_u16() as u32,
         body: response.text().await.map_to_send_err()?,
-        trace_id: trace_id
-    });
+        trace_id
+    })
 }
 
 fn get_otel_headers() -> (HeaderMap, String) {
@@ -75,7 +74,7 @@ pub fn init_otel_tracing() {
 }
 
 fn build_request(
-    http_method: &String,
+    http_method: &str,
     url: &String,
     input_parameters: &Option<ProbeInputParameters>,
     otel_headers: HeaderMap
@@ -96,7 +95,7 @@ fn build_request(
         }
     }
 
-    return Ok(request);
+    Ok(request)
 }
 
 #[cfg(test)]
@@ -106,12 +105,12 @@ mod http_tests {
 
     use crate::probe::expectations::validate_response;
     use crate::probe::http_probe::{call_endpoint, init_otel_tracing};
-    use crate::test_utils::test_utils::{
+    use crate::test_utils::probe_test_utils::{
         probe_get_with_expected_status, probe_post_with_expected_body,
     };
 
     use reqwest::StatusCode;
-    use wiremock::matchers::{body_string, header_exists, header_regex, method, path};
+    use wiremock::matchers::{body_string, header_exists, method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     // Note: These tests are a bit odd because they have been updated since a refactor
@@ -137,7 +136,7 @@ mod http_tests {
         let check_expectations_result =
             validate_response(&probe.name, &endpoint_result, &probe.expectations);
 
-        assert_eq!(check_expectations_result, true);
+        assert!(check_expectations_result);
     }
 
     #[tokio::test]
@@ -186,7 +185,7 @@ mod http_tests {
         let check_expectations_result =
             validate_response(&probe.name, &endpoint_result, &probe.expectations);
 
-        assert_eq!(check_expectations_result, true);
+        assert!(check_expectations_result);
     }
 
     #[tokio::test]
@@ -217,6 +216,6 @@ mod http_tests {
         let check_expectations_result =
             validate_response(&probe.name, &endpoint_result, &probe.expectations);
 
-        assert_eq!(check_expectations_result, true);
+        assert!(check_expectations_result);
     }
 }

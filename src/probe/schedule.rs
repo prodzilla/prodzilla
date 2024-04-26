@@ -57,7 +57,7 @@ mod schedule_tests {
 
     use crate::config::Config;
     use crate::probe::schedule::schedule_probes;
-    use crate::test_utils::test_utils::{
+    use crate::test_utils::probe_test_utils::{
         probe_get_with_expected_status, probe_get_with_expected_status_and_alert,
     };
     use crate::AppState;

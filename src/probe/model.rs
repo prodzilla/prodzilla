@@ -118,7 +118,7 @@ pub struct EndpointResult {
 
 impl EndpointResult {
     pub fn to_probe_response(&self) -> ProbeResponse {
-        return ProbeResponse {
+        ProbeResponse {
             timestamp_received: self.timestamp_response_received,
             status_code: self.status_code,
             body: self.body.clone(),

@@ -33,7 +33,7 @@ pub async fn get_story_results(
         }
     }
 
-    return Json(cloned_results);
+    Json(cloned_results)
 }
 
 pub async fn stories(Extension(state): Extension<Arc<AppState>>) -> Json<Vec<ProbeResponse>> {
@@ -54,7 +54,7 @@ pub async fn stories(Extension(state): Extension<Arc<AppState>>) -> Json<Vec<Pro
         })
     }
 
-    return Json(stories);
+    Json(stories)
 }
 
 pub async fn story_trigger(

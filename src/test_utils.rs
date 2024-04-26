@@ -1,5 +1,5 @@
 #[cfg(test)]
-pub mod test_utils {
+pub mod probe_test_utils {
     use std::collections::HashMap;
 
     use reqwest::StatusCode;
@@ -14,9 +14,9 @@ pub mod test_utils {
         url: String,
         body: String,
     ) -> Probe {
-        return Probe {
+        Probe {
             name: "Test probe".to_string(),
-            url: url,
+            url,
             http_method: "GET".to_string(),
             with: Some(ProbeInputParameters {
                 body: Some(body),
@@ -32,7 +32,7 @@ pub mod test_utils {
                 interval: 0,
             },
             alerts: None,
-        };
+        }
     }
 
     pub fn probe_get_with_expected_status_and_alert(
@@ -41,9 +41,9 @@ pub mod test_utils {
         body: String,
         alert_url: String,
     ) -> Probe {
-        return Probe {
+        Probe {
             name: "Test probe".to_string(),
-            url: url,
+            url,
             http_method: "GET".to_string(),
             with: Some(ProbeInputParameters {
                 body: Some(body),
@@ -59,7 +59,7 @@ pub mod test_utils {
                 interval: 0,
             },
             alerts: Some(vec![ProbeAlert { url: alert_url }]),
-        };
+        }
     }
 
     pub fn probe_post_with_expected_body(
@@ -67,9 +67,9 @@ pub mod test_utils {
         url: String,
         body: String,
     ) -> Probe {
-        return Probe {
+        Probe {
             name: "Test probe".to_string(),
-            url: url,
+            url,
             http_method: "POST".to_string(),
             with: Some(ProbeInputParameters {
                 body: Some(body),
@@ -92,6 +92,6 @@ pub mod test_utils {
                 interval: 0,
             },
             alerts: None,
-        };
+        }
     }
 }

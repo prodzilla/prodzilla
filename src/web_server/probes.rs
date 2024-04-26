@@ -29,7 +29,7 @@ pub async fn get_probe_results(
         }
     }
 
-    return Json(cloned_results);
+    Json(cloned_results)
 }
 
 pub async fn probes(Extension(state): Extension<Arc<AppState>>) -> Json<Vec<ProbeResponse>> {
@@ -50,7 +50,7 @@ pub async fn probes(Extension(state): Extension<Arc<AppState>>) -> Json<Vec<Prob
         })
     }
 
-    return Json(probes);
+    Json(probes)
 }
 
 pub async fn probe_trigger(Path(name): Path<String>,

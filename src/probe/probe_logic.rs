@@ -86,9 +86,9 @@ impl Monitorable for Story {
 
         let story_result = StoryResult {
             story_name: self.name.clone(),
-            timestamp_started: timestamp_started,
+            timestamp_started,
             success: story_success,
-            step_results: step_results,
+            step_results,
         };
 
         app_state.add_story_result(self.name.clone(), story_result);
@@ -106,10 +106,10 @@ impl Monitorable for Story {
     }
 
     fn get_name(&self) -> String {
-        return self.name.clone();
+        self.name.clone()
     }
     fn get_schedule(&self) -> &ProbeScheduleParameters {
-        return &self.schedule;
+        &self.schedule
     }
 }
 
@@ -117,30 +117,28 @@ impl Monitorable for Probe {
     async fn probe_and_store_result(&self, app_state: Arc<AppState>) {
         let call_endpoint_result = call_endpoint(&self.http_method, &self.url, &self.with).await;
 
-        let probe_result;
-
-        match call_endpoint_result {
+        let probe_result = match call_endpoint_result {
             Ok(endpoint_result) => {
                 let expectations_result =
                     validate_response(&self.name, &endpoint_result, &self.expectations);
 
-                probe_result = ProbeResult {
+                ProbeResult {
                     probe_name: self.name.clone(),
                     timestamp_started: endpoint_result.timestamp_request_started,
                     success: expectations_result,
                     response: Some(endpoint_result.to_probe_response()),
                     trace_id: Some(endpoint_result.trace_id)
-                };
+                }
             }
             Err(e) => {
                 error!("Error calling endpoint: {}", e);
-                probe_result = ProbeResult {
+                ProbeResult {
                     probe_name: self.name.clone(),
                     timestamp_started: Utc::now(),
                     success: false,
                     response: None,
                     trace_id: None
-                };
+                }
             }
         };
 
@@ -162,10 +160,10 @@ impl Monitorable for Probe {
     }
 
     fn get_name(&self) -> String {
-        return self.name.clone();
+        self.name.clone()
     }
     fn get_schedule(&self) -> &ProbeScheduleParameters {
-        return &self.schedule;
+        &self.schedule
     }
 }
 
@@ -235,7 +233,7 @@ mod probe_logic_tests {
         let results = &story_result_map[story_name];
         assert_eq!(1, results.len());
         let story_result = &results[0];
-        assert_eq!(true, story_result.success);
+        assert!(story_result.success);
         assert_eq!(2, story_result.step_results.len());
     }
 
@@ -303,7 +301,7 @@ mod probe_logic_tests {
         let results = &story_result_map[story_name];
         assert_eq!(1, results.len());
         let story_result = &results[0];
-        assert_eq!(false, story_result.success);
+        assert!(!story_result.success);
         assert_eq!(2, story_result.step_results.len());
 
     }
@@ -385,7 +383,7 @@ mod probe_logic_tests {
         let results = &story_result_map[story_name];
         assert_eq!(1, results.len());
         let story_result = &results[0];
-        assert_eq!(true, story_result.success);
+        assert!(story_result.success);
         assert_eq!(2, story_result.step_results.len());
     }
 

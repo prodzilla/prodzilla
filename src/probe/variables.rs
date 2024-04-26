@@ -13,9 +13,9 @@ pub struct StoryVariables {
 
 impl StoryVariables {
     pub fn new() -> StoryVariables {
-        return StoryVariables {
+        StoryVariables {
             steps: HashMap::new()
-        };
+        }
     }
 }
 
@@ -45,7 +45,7 @@ pub fn substitute_variables_in_headers(headers: &HashMap<String, String>, variab
 }
 
 // This could return an error in future - for now it fills an empty string
-pub fn substitute_variables(content: &String, variables: &StoryVariables) -> String {
+pub fn substitute_variables(content: &str, variables: &StoryVariables) -> String {
     SUB_REGEX.replace_all(content, |caps: &regex::Captures| {
         let placeholder = &caps[1];
         let parts: Vec<&str> = placeholder.split('.').collect();

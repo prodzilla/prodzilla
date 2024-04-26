@@ -18,7 +18,7 @@ lazy_static! {
 
 pub async fn alert_if_failure(
     success: bool,
-    probe_name: &String,
+    probe_name: &str,
     failure_timestamp: DateTime<Utc>,
     alerts: &Option<Vec<ProbeAlert>>,
 ) -> Result<(), Box<dyn std::error::Error + Send>> {
@@ -28,11 +28,11 @@ pub async fn alert_if_failure(
 
     if let Some(alerts_vec) = alerts {
         for alert in alerts_vec {
-            send_alert(alert, probe_name.clone(), failure_timestamp).await?;
+            send_alert(alert, probe_name.to_owned(), failure_timestamp).await?;
         }
     }
 
-    return Ok(());
+    Ok(())
 }
 
 pub async fn send_alert(
@@ -46,7 +46,7 @@ pub async fn send_alert(
 
     let request_body = WebhookNotification {
         message: "Probe failed.".to_owned(),
-        probe_name: probe_name,
+        probe_name,
         failure_timestamp,
     };
 
@@ -63,7 +63,7 @@ pub async fn send_alert(
         alert_response.status().to_owned()
     );
 
-    return Ok(());
+    Ok(())
 }
 
 #[cfg(test)]
