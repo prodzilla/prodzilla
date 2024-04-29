@@ -20,6 +20,8 @@ wiremock = "0.5.22"
 chrono = {version = "0.4.31", features = ["serde"] }
 regex = "1.10.3"
 uuid = { version = "1", features = ["v4"] }
-opentelemetry = "0.21.0"
-opentelemetry-http = "0.10.0"
-opentelemetry_sdk = { version = "0.21.2" , features = ["rt-tokio"] }
+opentelemetry = "0.22.0"
+opentelemetry-http = "0.11.1"
+opentelemetry_sdk = { version = "0.22.1" , features = ["rt-tokio"] }
+opentelemetry-otlp = {version = "0.15.0"}
+opentelemetry-semantic-conventions = "0.14.0"

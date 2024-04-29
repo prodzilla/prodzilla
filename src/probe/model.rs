@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -105,7 +106,9 @@ pub struct StepResult {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub response: Option<ProbeResponse>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub trace_id: Option<String>
+    pub trace_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub span_id: Option<String>
 }
 
 pub struct EndpointResult {
@@ -114,6 +117,7 @@ pub struct EndpointResult {
     pub status_code: u32,
     pub body: String,
     pub trace_id: String,
+    pub span_id: String,
 }
 
 impl EndpointResult {

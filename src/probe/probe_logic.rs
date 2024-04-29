@@ -1,6 +1,11 @@
 use std::sync::Arc;
 
 use chrono::Utc;
+use opentelemetry::global;
+use opentelemetry::trace::Span;
+use opentelemetry::trace::Status;
+use opentelemetry::trace::Tracer;
+use opentelemetry_semantic_conventions as semconv;
 use tracing::error;
 use tracing::info;
 
@@ -37,8 +42,11 @@ impl Monitorable for Story {
         let mut step_results: Vec<StepResult> = vec![];
         let timestamp_started = Utc::now();
 
+        let tracer = global::tracer("probe_logic");
+        let mut root_span = tracer.start(self.name.clone());
         for step in &self.steps {
-            
+            let mut step_span = tracer.start(step.name.clone());
+
             let url = substitute_variables(&step.url, &story_variables);
             let input_parameters = substitute_input_parameters(&step.with, &story_variables);
 
@@ -47,22 +55,33 @@ impl Monitorable for Story {
 
             match call_endpoint_result {
                 Ok(endpoint_result) => {
-                    let expectations_result =
-                        validate_response(&step.name, &endpoint_result, &step.expectations);
+                    let probe_response = endpoint_result.to_probe_response();
+                    step_span.set_attribute(opentelemetry::KeyValue::new(semconv::trace::HTTP_RESPONSE_STATUS_CODE, endpoint_result.status_code.to_string()));
+                    let expectations_result = match validate_response(&step.name, endpoint_result.status_code, endpoint_result.body, &step.expectations) {
+                        Ok(_) => {
+                            true
+                        },
+                        Err(e) => {
+                            step_span.record_error(&e);
+                            step_span.set_status(Status::Error { description: "Expectation failed".into() });
+                            false
+                        },
+                    };
 
                     let step_result = StepResult {
                         step_name: step.name.clone(),
                         timestamp_started: endpoint_result.timestamp_request_started,
                         success: expectations_result,
-                        response: Some(endpoint_result.to_probe_response()),
-                        trace_id: Some(endpoint_result.trace_id)
+                        response: Some(probe_response),
+                        trace_id: Some(endpoint_result.trace_id),
+                        span_id: Some(endpoint_result.span_id),
                     };
                     step_results.push(step_result);
 
                     if !expectations_result {
                         break;
                     }
-
+                    step_span.set_status(Status::Ok);
                     let step_variables = StepVariables{
                         response_body: step_results.last().unwrap().response.clone().unwrap().body
                     };
@@ -70,12 +89,14 @@ impl Monitorable for Story {
                 }
                 Err(e) => {
                     error!("Error calling endpoint: {}", e);
+                    root_span.record_error(&*e);
                     step_results.push(StepResult {
                         step_name: step.name.clone(),
                         success: false,
                         timestamp_started: Utc::now(),
                         response: None,
-                        trace_id: None
+                        trace_id: None,
+                        span_id: None,
                     });
                     break;
                 }
@@ -104,6 +125,7 @@ impl Monitorable for Story {
             error!("Error sending out alert: {}", e);
         }
     }
+    
 
     fn get_name(&self) -> String {
         self.name.clone()
@@ -119,14 +141,15 @@ impl Monitorable for Probe {
 
         let probe_result = match call_endpoint_result {
             Ok(endpoint_result) => {
+                let probe_response = endpoint_result.to_probe_response();
                 let expectations_result =
-                    validate_response(&self.name, &endpoint_result, &self.expectations);
+                    validate_response(&self.name, endpoint_result.status_code, endpoint_result.body, &self.expectations);
 
                 ProbeResult {
                     probe_name: self.name.clone(),
                     timestamp_started: endpoint_result.timestamp_request_started,
-                    success: expectations_result,
-                    response: Some(endpoint_result.to_probe_response()),
+                    success: expectations_result.is_ok(),
+                    response: Some(probe_response),
                     trace_id: Some(endpoint_result.trace_id)
                 }
             }

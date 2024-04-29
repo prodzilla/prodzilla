@@ -1,9 +1,15 @@
+
 use std::str::FromStr;
 use std::time::Duration;
 
 use crate::errors::MapToSendError;
 use chrono::Utc;
 use lazy_static::lazy_static;
+use opentelemetry::global::ObjectSafeSpan;
+
+use opentelemetry::trace::FutureExt;
+use opentelemetry::trace::SpanId;
+use opentelemetry::trace::TraceId;
 use opentelemetry_sdk::propagation::TraceContextPropagator;
 use opentelemetry_sdk::trace::TracerProvider;
 use reqwest::header::HeaderMap;
@@ -30,12 +36,13 @@ pub async fn call_endpoint(
     input_parameters: &Option<ProbeInputParameters>,
 ) -> Result<EndpointResult, Box<dyn std::error::Error + Send>> {
     let timestamp_start = Utc::now();
-    let (otel_headers, trace_id) = get_otel_headers();
+    let (otel_headers, cx, span_id, trace_id) = get_otel_headers(format!("{} {}", http_method, url));
 
     let request = build_request(http_method, url, input_parameters, otel_headers)?;
     let response = request
         .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
         .send()
+        .with_context(cx)
         .await
         .map_to_send_err()?;
 
@@ -46,14 +53,15 @@ pub async fn call_endpoint(
         timestamp_response_received: timestamp_response,
         status_code: response.status().as_u16() as u32,
         body: response.text().await.map_to_send_err()?,
-        trace_id
+        trace_id: trace_id.to_string(),
+        span_id: span_id.to_string(),
     })
 }
 
-fn get_otel_headers() -> (HeaderMap, String) {
-    
-    let tracer = global::tracer("prodzilla_tracer");
-    let span = tracer.start("prodzilla_call");
+fn get_otel_headers(span_name: String) -> (HeaderMap, Context, SpanId, TraceId) {
+    let span = global::tracer("http_probe").start(span_name);
+    let span_id = span.span_context().span_id();
+    let trace_id = span.span_context().trace_id();
     let cx = Context::current_with_span(span);
 
     let mut headers = HeaderMap::new();
@@ -61,9 +69,8 @@ fn get_otel_headers() -> (HeaderMap, String) {
         propagator.inject_context(&cx, &mut opentelemetry_http::HeaderInjector(&mut headers));
     });
 
-    let trace_id = cx.span().span_context().trace_id().to_string();
 
-    (headers, trace_id)
+    (headers, cx, span_id, trace_id)
 }
 
 // Needs to be called to enable trace ids
@@ -134,9 +141,9 @@ mod http_tests {
             .await
             .unwrap();
         let check_expectations_result =
-            validate_response(&probe.name, &endpoint_result, &probe.expectations);
+            validate_response(&probe.name, endpoint_result.status_code, endpoint_result.body, &probe.expectations);
 
-        assert!(check_expectations_result);
+        assert!(check_expectations_result.is_ok());
     }
 
     #[tokio::test]
@@ -183,9 +190,9 @@ mod http_tests {
             .await
             .unwrap();
         let check_expectations_result =
-            validate_response(&probe.name, &endpoint_result, &probe.expectations);
+            validate_response(&probe.name, endpoint_result.status_code, endpoint_result.body, &probe.expectations);
 
-        assert!(check_expectations_result);
+        assert!(check_expectations_result.is_ok());
     }
 
     #[tokio::test]
@@ -214,8 +221,8 @@ mod http_tests {
             .await
             .unwrap();
         let check_expectations_result =
-            validate_response(&probe.name, &endpoint_result, &probe.expectations);
+            validate_response(&probe.name, endpoint_result.status_code, endpoint_result.body, &probe.expectations);
 
-        assert!(check_expectations_result);
+        assert!(check_expectations_result.is_ok());
     }
 }
