@@ -10,8 +10,7 @@ use opentelemetry::global::ObjectSafeSpan;
 use opentelemetry::trace::FutureExt;
 use opentelemetry::trace::SpanId;
 use opentelemetry::trace::TraceId;
-use opentelemetry_sdk::propagation::TraceContextPropagator;
-use opentelemetry_sdk::trace::TracerProvider;
+
 use reqwest::header::HeaderMap;
 use reqwest::RequestBuilder;
 
@@ -73,12 +72,6 @@ fn get_otel_headers(span_name: String) -> (HeaderMap, Context, SpanId, TraceId) 
     (headers, cx, span_id, trace_id)
 }
 
-// Needs to be called to enable trace ids
-pub fn init_otel_tracing() {
-    let provider = TracerProvider::default();
-    global::set_tracer_provider(provider);
-    global::set_text_map_propagator(TraceContextPropagator::new());
-}
 
 fn build_request(
     http_method: &str,
@@ -110,8 +103,9 @@ mod http_tests {
 
     use std::time::Duration;
 
+    use crate::otel::tracing::init_otel_tracing;
     use crate::probe::expectations::validate_response;
-    use crate::probe::http_probe::{call_endpoint, init_otel_tracing};
+    use crate::probe::http_probe::call_endpoint;
     use crate::test_utils::probe_test_utils::{
         probe_get_with_expected_status, probe_post_with_expected_body,
     };

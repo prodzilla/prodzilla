@@ -4,8 +4,9 @@ mod config;
 mod errors;
 mod probe;
 mod web_server;
+mod otel;
 
-use probe::http_probe::init_otel_tracing;
+use otel::tracing::init_otel_tracing;
 use probe::schedule::schedule_probes;
 use probe::schedule::schedule_stories;
 use std::sync::Arc;
