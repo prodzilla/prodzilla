@@ -2,9 +2,12 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use opentelemetry::global;
-use opentelemetry::trace::Span;
+use opentelemetry::trace;
+use opentelemetry::trace::FutureExt;
 use opentelemetry::trace::Status;
+use opentelemetry::trace::TraceContextExt;
 use opentelemetry::trace::Tracer;
+use opentelemetry::Context;
 use opentelemetry_semantic_conventions as semconv;
 use tracing::error;
 use tracing::info;
@@ -43,27 +46,32 @@ impl Monitorable for Story {
         let timestamp_started = Utc::now();
 
         let tracer = global::tracer("probe_logic");
-        let mut root_span = tracer.start(self.name.clone());
+        let root_span = tracer.start(self.name.clone());
+        let root_cx = Context::default().with_span(root_span);
         for step in &self.steps {
-            let mut step_span = tracer.start(step.name.clone());
+            let step_span = tracer.start_with_context(step.name.clone(), &root_cx);
+            let step_cx = root_cx.with_span(step_span);
 
             let url = substitute_variables(&step.url, &story_variables);
             let input_parameters = substitute_input_parameters(&step.with, &story_variables);
 
             let call_endpoint_result =
-                call_endpoint(&step.http_method, &url, &input_parameters).await;
+                call_endpoint(&step.http_method, &url, &input_parameters)
+                .with_context(step_cx.clone())
+                .await;
 
             match call_endpoint_result {
                 Ok(endpoint_result) => {
                     let probe_response = endpoint_result.to_probe_response();
-                    step_span.set_attribute(opentelemetry::KeyValue::new(semconv::trace::HTTP_RESPONSE_STATUS_CODE, endpoint_result.status_code.to_string()));
+                    let span = step_cx.span();
+                    span.set_attribute(opentelemetry::KeyValue::new(semconv::trace::HTTP_RESPONSE_STATUS_CODE, endpoint_result.status_code.to_string()));
                     let expectations_result = match validate_response(&step.name, endpoint_result.status_code, endpoint_result.body, &step.expectations) {
                         Ok(_) => {
                             true
                         },
                         Err(e) => {
-                            step_span.record_error(&e);
-                            step_span.set_status(Status::Error { description: "Expectation failed".into() });
+                            span.record_error(&e);
+                            span.set_status(Status::Error { description: "Expectation failed".into() });
                             false
                         },
                     };
@@ -81,7 +89,7 @@ impl Monitorable for Story {
                     if !expectations_result {
                         break;
                     }
-                    step_span.set_status(Status::Ok);
+                    step_cx.span().set_status(Status::Ok);
                     let step_variables = StepVariables{
                         response_body: step_results.last().unwrap().response.clone().unwrap().body
                     };
@@ -89,7 +97,9 @@ impl Monitorable for Story {
                 }
                 Err(e) => {
                     error!("Error calling endpoint: {}", e);
-                    root_span.record_error(&*e);
+                    trace::get_active_span(|span| {
+                        span.record_error(&*e);
+                    });
                     step_results.push(StepResult {
                         step_name: step.name.clone(),
                         success: false,
@@ -137,7 +147,11 @@ impl Monitorable for Story {
 
 impl Monitorable for Probe {
     async fn probe_and_store_result(&self, app_state: Arc<AppState>) {
-        let call_endpoint_result = call_endpoint(&self.http_method, &self.url, &self.with).await;
+        let root_span = global::tracer("probe_logic").start(self.name.clone());
+
+        let call_endpoint_result = call_endpoint(&self.http_method, &self.url, &self.with)
+            .with_context(Context::current_with_span(root_span))
+            .await;
 
         let probe_result = match call_endpoint_result {
             Ok(endpoint_result) => {

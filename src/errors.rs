@@ -18,21 +18,19 @@ where
 pub struct ExpectationFailedError {
     pub field: ExpectField,
     pub expected: String,
-    pub received: String,
+    pub body: String,
     pub operation: ExpectOperation,
     pub status_code: u32,
 }
 
-impl Error for ExpectationFailedError {
-    
-}
+impl Error for ExpectationFailedError {}
 
 impl std::fmt::Display for ExpectationFailedError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
             f,
-            "Failed to meet expectation for field {:?} with operation {:?}. Expected: {}, Received: {} (truncatated to 100 characters).",
-            self.field, self.operation, self.expected, self.received.chars().take(100).collect::<String>()
+            "Failed to meet expectation for field '{:?}' with operation {:?} {:?}. Received: status '{}', body '{}' (truncatated to 100 characters).",
+            self.field, self.operation, self.expected, self.status_code, self.body.chars().take(100).collect::<String>()
         )
     }
 }
@@ -41,8 +39,8 @@ impl std::fmt::Debug for ExpectationFailedError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
             f,
-            "Failed to meet expectation for field {:?} with operation {:?}. Expected: {}, Received: {}",
-            self.field, self.operation, self.expected, self.received
+            "Failed to meet expectation for field '{:?}' with operation {:?} {:?}. Received: status '{}', body '{}'",
+            self.field, self.operation, self.expected, self.status_code, self.body
         )
     }
 }

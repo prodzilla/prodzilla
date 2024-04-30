@@ -84,7 +84,7 @@ fn validate_expectation(
     } else {
         Err(ExpectationFailedError {
             expected: expect.value.clone(),
-            received: received_value.to_owned(),
+            body: body.clone(),
             operation: expect.operation.clone(),
             field: expect.field.clone(),
             status_code,
