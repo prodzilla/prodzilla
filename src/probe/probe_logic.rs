@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use chrono::Utc;
+use tracing::debug;
 use tracing::error;
 use tracing::info;
 
@@ -26,6 +27,26 @@ pub trait Monitorable {
     fn get_schedule(&self) -> &ProbeScheduleParameters;
 }
 
+macro_rules! probe_duration {
+    ($start:expr, $probe_name:expr) => {
+        let duration = Utc::now().signed_duration_since($start).num_milliseconds();
+        debug!(histogram.probe_duration_ms=duration, probe_name=$probe_name);
+    };
+}
+
+macro_rules! step_duration {
+    ($start:expr, $story_name:expr, $step_name:expr) => {
+        let duration = Utc::now().signed_duration_since($start).num_milliseconds();
+        debug!(histogram.step_duration_ms=duration, story_name=$story_name, step_name=$step_name);
+    };
+}
+
+macro_rules! story_duration {
+    ($start:expr, $story_name:expr) => {
+        let duration = Utc::now().signed_duration_since($start).num_milliseconds();
+        debug!(histogram.story_duration_ms=duration, story_name=$story_name);
+    };
+}
 // TODOs here: Step / Probe can be the same object
 // The timestamps are a little disorganised
 // Reduce nested code
@@ -34,12 +55,14 @@ pub trait Monitorable {
 impl Monitorable for Story {
     #[tracing::instrument(name="story", skip(self, app_state))]
     async fn probe_and_store_result(&self, app_state: Arc<AppState>) {
+        debug!(monotonic_counter.story_runs = 1, story_name=%self.name);
         let mut story_variables = StoryVariables::new();
         let mut step_results: Vec<StepResult> = vec![];
         let timestamp_started = Utc::now();
 
         for step in &self.steps {
-
+            let step_started = Utc::now();
+            debug!(monotonic_counter.step_runs = 1, step_name=%step.name, story_name=%self.name);
             let url = substitute_variables(&step.url, &story_variables);
             let input_parameters = substitute_input_parameters(&step.with, &story_variables);
 
@@ -71,12 +94,14 @@ impl Monitorable for Story {
                     step_results.push(step_result);
 
                     if !expectations_result {
+                        step_duration!(step_started, self.name, step.name);
                         break;
                     }
                     let step_variables = StepVariables{
                         response_body: step_results.last().unwrap().response.clone().unwrap().body
                     };
                     story_variables.steps.insert(step.name.clone(), step_variables);
+                    step_duration!(step_started, self.name, step.name);
                 }
                 Err(e) => {
                     error!("Error calling endpoint: {}", e);
@@ -89,12 +114,18 @@ impl Monitorable for Story {
                         trace_id: None,
                         span_id: None,
                     });
+                    step_duration!(step_started, self.name, step.name);
                     break;
                 }
             };
         }
-
-        let story_success = step_results.last().unwrap().success;
+        let last_step = step_results.last().unwrap();
+        let story_success = last_step.success;
+        if !story_success {
+            debug!(monotonic_counter.story_failures=1, story_name=%self.name);
+            debug!(monotonic_counter.step_failures=1, step_name=%last_step.step_name, story_name=%self.name);
+        }
+        story_duration!(timestamp_started, self.name);
 
         let story_result = StoryResult {
             story_name: self.name.clone(),
@@ -129,7 +160,7 @@ impl Monitorable for Story {
 impl Monitorable for Probe {
     #[tracing::instrument(name="probe", skip(self, app_state))]
     async fn probe_and_store_result(&self, app_state: Arc<AppState>) {
-
+        debug!(monotonic_counter.probe_runs = 1, probe_name=%self.name);
         let call_endpoint_result = call_endpoint(&self.http_method, &self.url, &self.with)
             .await;
 
@@ -147,6 +178,7 @@ impl Monitorable for Probe {
                 }
             }
             Err(e) => {
+                debug!(monotonic_counter.probe_failures=1, probe_name=%self.name);
                 error!("Error calling endpoint: {}", e);
                 tracing::error!(%e);
                 ProbeResult {
@@ -163,6 +195,7 @@ impl Monitorable for Probe {
         let timestamp = probe_result.timestamp_started;
 
         app_state.add_probe_result(self.name.clone(), probe_result);
+        probe_duration!(timestamp, &self.name);
 
         info!(
             "Finished scheduled probe {}, success: {}",
