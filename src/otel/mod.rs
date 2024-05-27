@@ -5,7 +5,7 @@ use opentelemetry_sdk::{
     resource::{EnvResourceDetector, ResourceDetector},
     Resource,
 };
-use tracing_opentelemetry::{MetricsLayer, OpenTelemetryLayer};
+use tracing_opentelemetry::MetricsLayer;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
 
@@ -33,14 +33,12 @@ impl Drop for OtelGuard {
 pub fn init() -> OtelGuard {
     let meter_provider = metrics::create_meter_provider();
     let metrics_layer = meter_provider.clone().map(MetricsLayer::new);
-    let tracer = tracing::create_tracer();
-    let tracing_layer = tracer.map(OpenTelemetryLayer::new);
+    tracing::create_tracer();
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
     tracing_subscriber::registry()
         .with(filter)
         .with(tracing_subscriber::fmt::layer())
         .with(metrics_layer)
-        .with(tracing_layer)
         .init();
 
     OtelGuard { meter_provider }

@@ -2,6 +2,14 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use tracing::debug;
+use opentelemetry::global;
+use opentelemetry::trace;
+use opentelemetry::trace::FutureExt;
+use opentelemetry::trace::Status;
+use opentelemetry::trace::TraceContextExt;
+use opentelemetry::trace::Tracer;
+use opentelemetry::Context;
+use opentelemetry_semantic_conventions as semconv;
 use tracing::error;
 use tracing::info;
 
@@ -53,32 +61,41 @@ macro_rules! story_duration {
 // Kill all the .clone() - I think the source of truth is the StepResult values?
 
 impl Monitorable for Story {
-    #[tracing::instrument(name="story", skip(self, app_state))]
     async fn probe_and_store_result(&self, app_state: Arc<AppState>) {
         debug!(monotonic_counter.story_runs = 1, story_name=%self.name);
         let mut story_variables = StoryVariables::new();
         let mut step_results: Vec<StepResult> = vec![];
         let timestamp_started = Utc::now();
 
+        let tracer = global::tracer("probe_logic");
+        let root_span = tracer.start(self.name.clone());
+        let root_cx = Context::default().with_span(root_span);
         for step in &self.steps {
             let step_started = Utc::now();
             debug!(monotonic_counter.step_runs = 1, step_name=%step.name, story_name=%self.name);
+            let step_span = tracer.start_with_context(step.name.clone(), &root_cx);
+            let step_cx = root_cx.with_span(step_span);
+
             let url = substitute_variables(&step.url, &story_variables);
             let input_parameters = substitute_input_parameters(&step.with, &story_variables);
 
             let call_endpoint_result =
                 call_endpoint(&step.http_method, &url, &input_parameters)
+                .with_context(step_cx.clone())
                 .await;
 
             match call_endpoint_result {
                 Ok(endpoint_result) => {
                     let probe_response = endpoint_result.to_probe_response();
+                    let span = step_cx.span();
+                    span.set_attribute(opentelemetry::KeyValue::new(semconv::trace::HTTP_RESPONSE_STATUS_CODE, endpoint_result.status_code.to_string()));
                     let expectations_result = match validate_response(&step.name, endpoint_result.status_code, endpoint_result.body, &step.expectations) {
                         Ok(_) => {
                             true
                         },
                         Err(e) => {
-                            tracing::error!(%e);
+                            span.record_error(&e);
+                            span.set_status(Status::Error { description: "Expectation failed".into() });
                             false
                         },
                     };
@@ -97,6 +114,7 @@ impl Monitorable for Story {
                         step_duration!(step_started, self.name, step.name);
                         break;
                     }
+                    step_cx.span().set_status(Status::Ok);
                     let step_variables = StepVariables{
                         response_body: step_results.last().unwrap().response.clone().unwrap().body
                     };
@@ -105,7 +123,9 @@ impl Monitorable for Story {
                 }
                 Err(e) => {
                     error!("Error calling endpoint: {}", e);
-                    tracing::error!(%e);
+                    trace::get_active_span(|span| {
+                        span.record_error(&*e);
+                    });
                     step_results.push(StepResult {
                         step_name: step.name.clone(),
                         success: false,
@@ -157,10 +177,12 @@ impl Monitorable for Story {
 }
 
 impl Monitorable for Probe {
-    #[tracing::instrument(name="probe", skip(self, app_state))]
     async fn probe_and_store_result(&self, app_state: Arc<AppState>) {
         debug!(monotonic_counter.probe_runs = 1, probe_name=%self.name);
+        let root_span = global::tracer("probe_logic").start(self.name.clone());
+
         let call_endpoint_result = call_endpoint(&self.http_method, &self.url, &self.with)
+            .with_context(Context::current_with_span(root_span))
             .await;
 
         let probe_result = match call_endpoint_result {
@@ -168,6 +190,7 @@ impl Monitorable for Probe {
                 let probe_response = endpoint_result.to_probe_response();
                 let expectations_result =
                     validate_response(&self.name, endpoint_result.status_code, endpoint_result.body, &self.expectations);
+
                 ProbeResult {
                     probe_name: self.name.clone(),
                     timestamp_started: endpoint_result.timestamp_request_started,
@@ -179,7 +202,6 @@ impl Monitorable for Probe {
             Err(e) => {
                 debug!(monotonic_counter.probe_failures=1, probe_name=%self.name);
                 error!("Error calling endpoint: {}", e);
-                tracing::error!(%e);
                 ProbeResult {
                     probe_name: self.name.clone(),
                     timestamp_started: Utc::now(),
@@ -204,7 +226,6 @@ impl Monitorable for Probe {
             alert_if_failure(success, &self.name, timestamp, &self.alerts, &probe_result.trace_id).await;
         if let Err(e) = send_alert_result {
             error!("Error sending out alert: {}", e);
-            tracing::error!(%e)
         }
         app_state.add_probe_result(self.name.clone(), probe_result);
     }

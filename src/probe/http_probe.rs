@@ -5,6 +5,7 @@ use std::time::Duration;
 use crate::errors::MapToSendError;
 use chrono::Utc;
 use lazy_static::lazy_static;
+use opentelemetry::global::ObjectSafeSpan;
 
 use opentelemetry::trace::FutureExt;
 use opentelemetry::trace::SpanId;
@@ -12,15 +13,12 @@ use opentelemetry::trace::TraceId;
 
 use reqwest::header::HeaderMap;
 use reqwest::RequestBuilder;
-use tracing::instrument;
-use tracing::Span;
-use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use super::model::EndpointResult;
 use super::model::ProbeInputParameters;
 use opentelemetry::trace::TraceContextExt;
 use opentelemetry::Context;
-use opentelemetry::global;
+use opentelemetry::{global, trace::Tracer};
 
 const REQUEST_TIMEOUT_SECS: u64 = 10;
 
@@ -31,14 +29,13 @@ lazy_static! {
         .unwrap();
 }
 
-#[instrument(skip(input_parameters))]
 pub async fn call_endpoint(
     http_method: &str,
     url: &String,
     input_parameters: &Option<ProbeInputParameters>,
 ) -> Result<EndpointResult, Box<dyn std::error::Error + Send>> {
     let timestamp_start = Utc::now();
-    let (otel_headers, cx, span_id, trace_id) = get_otel_headers();
+    let (otel_headers, cx, span_id, trace_id) = get_otel_headers(format!("{} {}", http_method, url));
 
     let request = build_request(http_method, url, input_parameters, otel_headers)?;
     let response = request
@@ -60,15 +57,19 @@ pub async fn call_endpoint(
     })
 }
 
-fn get_otel_headers() -> (HeaderMap, Context, SpanId, TraceId) {
-    let cx = Span::current().context();
+fn get_otel_headers(span_name: String) -> (HeaderMap, Context, SpanId, TraceId) {
+    let span = global::tracer("http_probe").start(span_name);
+    let span_id = span.span_context().span_id();
+    let trace_id = span.span_context().trace_id();
+    let cx = Context::current_with_span(span);
+
     let mut headers = HeaderMap::new();
     global::get_text_map_propagator(|propagator| {
         propagator.inject_context(&cx, &mut opentelemetry_http::HeaderInjector(&mut headers));
     });
-    let span = cx.span().span_context().clone();
 
-    (headers, cx, span.span_id(), span.trace_id())
+
+    (headers, cx, span_id, trace_id)
 }
 
 
@@ -102,6 +103,7 @@ mod http_tests {
 
     use std::time::Duration;
 
+    use crate::otel;
     use crate::probe::expectations::validate_response;
     use crate::probe::http_probe::call_endpoint;
     use crate::test_utils::probe_test_utils::{
@@ -189,6 +191,7 @@ mod http_tests {
 
     #[tokio::test]
     async fn test_requests_post_200_with_body() {
+        otel::tracing::create_tracer();
         let mock_server = MockServer::start().await;
 
         let request_body = "request body";

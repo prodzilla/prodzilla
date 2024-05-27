@@ -12,7 +12,6 @@ use probe::schedule::schedule_stories;
 use std::sync::Arc;
 use web_server::start_axum_server;
 
-
 use crate::{app_state::AppState, config::load_config};
 
 const PRODZILLA_YAML: &str = "prodzilla.yml";
@@ -41,7 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn start_monitoring(app_state: Arc<AppState>) -> Result<(), Box<dyn std::error::Error>> {    
+async fn start_monitoring(app_state: Arc<AppState>) -> Result<(), Box<dyn std::error::Error>> {
     schedule_probes(&app_state.config.probes, app_state.clone());
     schedule_stories(&app_state.config.stories, app_state.clone());
     Ok(())
