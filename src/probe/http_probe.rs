@@ -101,6 +101,7 @@ fn build_request(
 #[cfg(test)]
 mod http_tests {
 
+    use std::env;
     use std::time::Duration;
 
     use crate::otel;
@@ -191,6 +192,8 @@ mod http_tests {
 
     #[tokio::test]
     async fn test_requests_post_200_with_body() {
+        // necessary for trace propagation
+        env::set_var("OTEL_TRACES_EXPORTER", "otlp");
         otel::tracing::create_tracer();
         let mock_server = MockServer::start().await;
 
