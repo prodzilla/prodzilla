@@ -6,11 +6,10 @@ use opentelemetry_sdk::{
     },
     runtime,
 };
-use tracing::debug;
 use std::env;
+use tracing::debug;
 
 use super::resource;
-
 
 pub fn create_meter_provider() -> Option<SdkMeterProvider> {
     let reader = match env::var("OTEL_METRICS_EXPORTER") {
@@ -23,14 +22,12 @@ pub fn create_meter_provider() -> Option<SdkMeterProvider> {
                     Box::new(DefaultTemporalitySelector::new()),
                 )
                 .unwrap();
-            PeriodicReader::builder(exporter, runtime::Tokio)
-                .build()
+            PeriodicReader::builder(exporter, runtime::Tokio).build()
         }
         Ok(exporter_type) if exporter_type == "stdout" => {
             debug!("Using stdout metrics exporter");
             let exporter = opentelemetry_stdout::MetricsExporter::default();
-            PeriodicReader::builder(exporter, runtime::Tokio)
-                .build()
+            PeriodicReader::builder(exporter, runtime::Tokio).build()
         }
         _ => {
             debug!("No metrics exporter configured");
@@ -46,4 +43,3 @@ pub fn create_meter_provider() -> Option<SdkMeterProvider> {
 
     Some(meter_provider)
 }
-

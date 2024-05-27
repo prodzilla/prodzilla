@@ -72,7 +72,6 @@ pub struct ProbeResponse {
     pub body: String,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Story {
     pub name: String,
@@ -108,7 +107,7 @@ pub struct StepResult {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trace_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub span_id: Option<String>
+    pub span_id: Option<String>,
 }
 
 pub struct EndpointResult {

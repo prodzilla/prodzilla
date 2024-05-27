@@ -50,8 +50,6 @@ pub async fn probing_loop<T: Monitorable>(monitorable: &T, app_state: Arc<AppSta
     }
 }
 
-
-
 #[cfg(test)]
 mod schedule_tests {
 
@@ -98,9 +96,9 @@ mod schedule_tests {
             format!("{}{}", mock_server.uri(), alert_url.to_owned()),
         );
 
-        let config = Config{
+        let config = Config {
             probes: vec![probe],
-            stories: vec![]
+            stories: vec![],
         };
 
         let app_state = Arc::new(AppState::new(config));
@@ -133,9 +131,9 @@ mod schedule_tests {
             "".to_owned(),
         );
 
-        let config = Config{
+        let config = Config {
             probes: vec![probe],
-            stories: vec![]
+            stories: vec![],
         };
 
         let app_state = Arc::new(AppState::new(config));

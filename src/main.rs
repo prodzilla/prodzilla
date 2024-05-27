@@ -2,9 +2,9 @@ mod alerts;
 mod app_state;
 mod config;
 mod errors;
+mod otel;
 mod probe;
 mod web_server;
-mod otel;
 
 use clap::Parser;
 use probe::schedule::schedule_probes;

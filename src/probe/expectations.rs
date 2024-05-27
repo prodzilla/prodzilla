@@ -11,20 +11,17 @@ pub fn validate_response(
     expectations: &Option<Vec<ProbeExpectation>>,
 ) -> Result<(), ExpectationFailedError> {
     match expectations {
-        Some(expect_back) => {
-            match validate_response_internal(expect_back,status_code, body) {
-                Ok(_) => {
-                    debug!("Successful response for {}, as expected", step_name);
-                    Ok(())
-                },
-                Err(e) => {
-                    debug!("Successful response for {}, not as expected!", step_name);
-                    Err(e)
-                },
+        Some(expect_back) => match validate_response_internal(expect_back, status_code, body) {
+            Ok(_) => {
+                debug!("Successful response for {}, as expected", step_name);
+                Ok(())
             }
-        }
+            Err(e) => {
+                debug!("Successful response for {}, not as expected!", step_name);
+                Err(e)
+            }
+        },
         None => {
-
             // TODO:
             // If we don't have any expectations, default to checking status is 200
 
@@ -49,21 +46,11 @@ pub fn validate_response_internal(
     Ok(())
 }
 
-fn expectation_met(
-    operation: &ExpectOperation,
-    expected: &String,
-    received: &String,
-) -> bool {
+fn expectation_met(operation: &ExpectOperation, expected: &String, received: &String) -> bool {
     match operation {
-        ExpectOperation::Equals => {
-            expected == received
-        }
-        ExpectOperation::Contains => {
-            received.contains(expected)
-        }
-        ExpectOperation::IsOneOf => {
-            expected.split('|').any(|part| part == received)
-        }
+        ExpectOperation::Equals => expected == received,
+        ExpectOperation::Contains => received.contains(expected),
+        ExpectOperation::IsOneOf => expected.split('|').any(|part| part == received),
     }
 }
 

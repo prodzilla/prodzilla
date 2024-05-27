@@ -5,7 +5,10 @@ use axum::{
 use std::sync::Arc;
 use tracing::debug;
 
-use crate::{app_state::AppState, probe::{model::StoryResult, probe_logic::Monitorable}};
+use crate::{
+    app_state::AppState,
+    probe::{model::StoryResult, probe_logic::Monitorable},
+};
 
 use super::model::{ProbeQueryParams, ProbeResponse};
 
@@ -63,7 +66,12 @@ pub async fn story_trigger(
 ) -> Json<StoryResult> {
     debug!("Story trigger called");
 
-    let story = &state.config.stories.iter().find(|x| x.name == name).unwrap();
+    let story = &state
+        .config
+        .stories
+        .iter()
+        .find(|x| x.name == name)
+        .unwrap();
 
     story.probe_and_store_result(state.clone()).await;
 

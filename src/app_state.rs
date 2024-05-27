@@ -1,6 +1,9 @@
-use std::{sync::RwLock, collections::HashMap};
+use std::{collections::HashMap, sync::RwLock};
 
-use crate::{config::Config, probe::model::{ProbeResult, StoryResult}};
+use crate::{
+    config::Config,
+    probe::model::{ProbeResult, StoryResult},
+};
 
 // Limits the number of results we store per probe. Once we go over this amount we remove the earliest.
 const PROBE_RESULT_LIMIT: usize = 100;
@@ -8,16 +11,15 @@ const PROBE_RESULT_LIMIT: usize = 100;
 pub struct AppState {
     pub probe_results: RwLock<HashMap<String, Vec<ProbeResult>>>,
     pub story_results: RwLock<HashMap<String, Vec<StoryResult>>>,
-    pub config: Config
+    pub config: Config,
 }
 
 impl AppState {
-    
     pub fn new(config: Config) -> AppState {
         AppState {
             probe_results: RwLock::new(HashMap::new()),
             story_results: RwLock::new(HashMap::new()),
-            config
+            config,
         }
     }
 

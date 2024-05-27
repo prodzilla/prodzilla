@@ -1,4 +1,3 @@
-
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -35,7 +34,8 @@ pub async fn call_endpoint(
     input_parameters: &Option<ProbeInputParameters>,
 ) -> Result<EndpointResult, Box<dyn std::error::Error + Send>> {
     let timestamp_start = Utc::now();
-    let (otel_headers, cx, span_id, trace_id) = get_otel_headers(format!("{} {}", http_method, url));
+    let (otel_headers, cx, span_id, trace_id) =
+        get_otel_headers(format!("{} {}", http_method, url));
 
     let request = build_request(http_method, url, input_parameters, otel_headers)?;
     let response = request
@@ -68,16 +68,14 @@ fn get_otel_headers(span_name: String) -> (HeaderMap, Context, SpanId, TraceId) 
         propagator.inject_context(&cx, &mut opentelemetry_http::HeaderInjector(&mut headers));
     });
 
-
     (headers, cx, span_id, trace_id)
 }
-
 
 fn build_request(
     http_method: &str,
     url: &String,
     input_parameters: &Option<ProbeInputParameters>,
-    otel_headers: HeaderMap
+    otel_headers: HeaderMap,
 ) -> Result<RequestBuilder, Box<dyn std::error::Error + Send>> {
     let method = reqwest::Method::from_str(http_method).map_to_send_err()?;
 
@@ -135,8 +133,12 @@ mod http_tests {
         let endpoint_result = call_endpoint(&probe.http_method, &probe.url, &probe.with)
             .await
             .unwrap();
-        let check_expectations_result =
-            validate_response(&probe.name, endpoint_result.status_code, endpoint_result.body, &probe.expectations);
+        let check_expectations_result = validate_response(
+            &probe.name,
+            endpoint_result.status_code,
+            endpoint_result.body,
+            &probe.expectations,
+        );
 
         assert!(check_expectations_result.is_ok());
     }
@@ -184,8 +186,12 @@ mod http_tests {
         let endpoint_result = call_endpoint(&probe.http_method, &probe.url, &probe.with)
             .await
             .unwrap();
-        let check_expectations_result =
-            validate_response(&probe.name, endpoint_result.status_code, endpoint_result.body, &probe.expectations);
+        let check_expectations_result = validate_response(
+            &probe.name,
+            endpoint_result.status_code,
+            endpoint_result.body,
+            &probe.expectations,
+        );
 
         assert!(check_expectations_result.is_ok());
     }
@@ -217,8 +223,12 @@ mod http_tests {
         let endpoint_result = call_endpoint(&probe.http_method, &probe.url, &probe.with)
             .await
             .unwrap();
-        let check_expectations_result =
-            validate_response(&probe.name, endpoint_result.status_code, endpoint_result.body, &probe.expectations);
+        let check_expectations_result = validate_response(
+            &probe.name,
+            endpoint_result.status_code,
+            endpoint_result.body,
+            &probe.expectations,
+        );
 
         assert!(check_expectations_result.is_ok());
     }

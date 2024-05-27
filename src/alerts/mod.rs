@@ -1,2 +1,2 @@
-pub(crate) mod outbound_webhook;
 mod model;
+pub(crate) mod outbound_webhook;

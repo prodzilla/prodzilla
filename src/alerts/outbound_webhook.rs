@@ -29,7 +29,13 @@ pub async fn alert_if_failure(
 
     if let Some(alerts_vec) = alerts {
         for alert in alerts_vec {
-            send_alert(alert, probe_name.to_owned(), failure_timestamp, trace_id.clone()).await?;
+            send_alert(
+                alert,
+                probe_name.to_owned(),
+                failure_timestamp,
+                trace_id.clone(),
+            )
+            .await?;
         }
     }
 
@@ -98,7 +104,8 @@ mod webhook_tests {
         }]);
         let failure_timestamp = Utc::now();
 
-        let alert_result = alert_if_failure(false, &probe_name, failure_timestamp, &alerts, &None).await;
+        let alert_result =
+            alert_if_failure(false, &probe_name, failure_timestamp, &alerts, &None).await;
 
         assert!(alert_result.is_ok());
     }
