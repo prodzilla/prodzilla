@@ -53,6 +53,8 @@ pub fn substitute_variables(content: &str, variables: &StoryVariables) -> String
         match parts[0] {
             "steps" => substitute_step_value(&parts[1..], variables),
             "generate" => get_generated_value(parts.get(1)),
+            // panics on missing enivronment variables, probably desirable?
+            "env" => std::env::var(parts[1]).unwrap(),
             _ => "".to_string(),
         }
     }).to_string()
