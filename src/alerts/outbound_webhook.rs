@@ -21,6 +21,7 @@ pub async fn alert_if_failure(
     probe_name: &str,
     failure_timestamp: DateTime<Utc>,
     alerts: &Option<Vec<ProbeAlert>>,
+    trace_id: &Option<String>,
 ) -> Result<(), Box<dyn std::error::Error + Send>> {
     if success {
         return Ok(());
@@ -28,7 +29,7 @@ pub async fn alert_if_failure(
 
     if let Some(alerts_vec) = alerts {
         for alert in alerts_vec {
-            send_alert(alert, probe_name.to_owned(), failure_timestamp).await?;
+            send_alert(alert, probe_name.to_owned(), failure_timestamp, trace_id.clone()).await?;
         }
     }
 
@@ -39,6 +40,7 @@ pub async fn send_alert(
     alert: &ProbeAlert,
     probe_name: String,
     failure_timestamp: DateTime<Utc>,
+    trace_id: Option<String>,
 ) -> Result<(), Box<dyn std::error::Error + Send>> {
     // When we have other alert types, add them in some kind of switch here
 
@@ -48,6 +50,7 @@ pub async fn send_alert(
         message: "Probe failed.".to_owned(),
         probe_name,
         failure_timestamp,
+        trace_id,
     };
 
     let json = serde_json::to_string(&request_body).map_to_send_err()?;
@@ -95,7 +98,7 @@ mod webhook_tests {
         }]);
         let failure_timestamp = Utc::now();
 
-        let alert_result = alert_if_failure(false, &probe_name, failure_timestamp, &alerts).await;
+        let alert_result = alert_if_failure(false, &probe_name, failure_timestamp, &alerts, &None).await;
 
         assert!(alert_result.is_ok());
     }

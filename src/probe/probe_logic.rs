@@ -127,6 +127,16 @@ impl Monitorable for Story {
         }
         story_duration!(timestamp_started, self.name);
 
+        info!(
+            "Finished scheduled story {}, success: {}",
+            &self.name, story_success
+        );
+        
+        let send_alert_result =
+        alert_if_failure(story_success, &self.name, timestamp_started, &self.alerts, &last_step.trace_id).await;
+        if let Err(e) = send_alert_result {
+            error!("Error sending out alert: {}", e);
+        }
         let story_result = StoryResult {
             story_name: self.name.clone(),
             timestamp_started,
@@ -135,17 +145,6 @@ impl Monitorable for Story {
         };
 
         app_state.add_story_result(self.name.clone(), story_result);
-
-        info!(
-            "Finished scheduled story {}, success: {}",
-            &self.name, story_success
-        );
-
-        let send_alert_result =
-            alert_if_failure(story_success, &self.name, timestamp_started, &self.alerts).await;
-        if let Err(e) = send_alert_result {
-            error!("Error sending out alert: {}", e);
-        }
     }
     
 
@@ -194,20 +193,20 @@ impl Monitorable for Probe {
         let success = probe_result.success;
         let timestamp = probe_result.timestamp_started;
 
-        app_state.add_probe_result(self.name.clone(), probe_result);
         probe_duration!(timestamp, &self.name);
-
+        
         info!(
             "Finished scheduled probe {}, success: {}",
             &self.name, success
         );
-
+        
         let send_alert_result =
-            alert_if_failure(success, &self.name, timestamp, &self.alerts).await;
+            alert_if_failure(success, &self.name, timestamp, &self.alerts, &probe_result.trace_id).await;
         if let Err(e) = send_alert_result {
             error!("Error sending out alert: {}", e);
             tracing::error!(%e)
         }
+        app_state.add_probe_result(self.name.clone(), probe_result);
     }
 
     fn get_name(&self) -> String {
