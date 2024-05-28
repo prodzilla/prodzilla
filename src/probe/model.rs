@@ -33,6 +33,7 @@ pub enum ExpectOperation {
     Equals,
     IsOneOf,
     Contains,
+    Matches,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

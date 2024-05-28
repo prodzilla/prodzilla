@@ -2,6 +2,7 @@ use crate::errors::ExpectationFailedError;
 use crate::probe::model::ExpectField;
 use crate::probe::model::ExpectOperation;
 use crate::probe::model::ProbeExpectation;
+use regex::Regex;
 use tracing::debug;
 
 pub fn validate_response(
@@ -51,6 +52,8 @@ fn expectation_met(operation: &ExpectOperation, expected: &String, received: &St
         ExpectOperation::Equals => expected == received,
         ExpectOperation::Contains => received.contains(expected),
         ExpectOperation::IsOneOf => expected.split('|').any(|part| part == received),
+        // TODO: This regex could probably be pre-compiled?
+        ExpectOperation::Matches => Regex::new(expected).unwrap().is_match(received),
     }
 }
 
@@ -126,6 +129,23 @@ async fn test_validate_expectations_isoneof() {
         &ExpectOperation::IsOneOf,
         &"Test|Yes|No".to_owned(),
         &"Yest".to_owned(),
+    );
+    assert!(!fail_result);
+}
+
+#[tokio::test]
+async fn test_validate_expectations_matches() {
+    let success_result = expectation_met(
+        &ExpectOperation::Matches,
+        &r#"^\d{5}$"#.to_owned(),
+        &"12345".to_owned(),
+    );
+    assert!(success_result);
+
+    let fail_result = expectation_met(
+        &ExpectOperation::Matches,
+        &r#"^\d{5}$"#.to_owned(),
+        &"1234".to_owned(),
     );
     assert!(!fail_result);
 }
