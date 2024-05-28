@@ -8,8 +8,8 @@ use opentelemetry::trace::Status;
 use opentelemetry::trace::TraceContextExt;
 use opentelemetry::trace::Tracer;
 use opentelemetry::Context;
+use opentelemetry::KeyValue;
 use opentelemetry_semantic_conventions as semconv;
-use tracing::debug;
 use tracing::error;
 use tracing::info;
 
@@ -35,36 +35,12 @@ pub trait Monitorable {
     fn get_schedule(&self) -> &ProbeScheduleParameters;
 }
 
-macro_rules! probe_duration {
-    ($start:expr, $probe_name:expr) => {
-        let duration = Utc::now().signed_duration_since($start).num_milliseconds();
-        debug!(
-            histogram.probe_duration_ms = duration,
-            probe_name = $probe_name
-        );
-    };
+fn time_since(timestamp: &chrono::DateTime<Utc>) -> u64 {
+    Utc::now()
+        .signed_duration_since(*timestamp)
+        .num_milliseconds() as u64
 }
 
-macro_rules! step_duration {
-    ($start:expr, $story_name:expr, $step_name:expr) => {
-        let duration = Utc::now().signed_duration_since($start).num_milliseconds();
-        debug!(
-            histogram.step_duration_ms = duration,
-            story_name = $story_name,
-            step_name = $step_name
-        );
-    };
-}
-
-macro_rules! story_duration {
-    ($start:expr, $story_name:expr) => {
-        let duration = Utc::now().signed_duration_since($start).num_milliseconds();
-        debug!(
-            histogram.story_duration_ms = duration,
-            story_name = $story_name
-        );
-    };
-}
 // TODOs here: Step / Probe can be the same object
 // The timestamps are a little disorganised
 // Reduce nested code
@@ -72,7 +48,14 @@ macro_rules! story_duration {
 
 impl Monitorable for Story {
     async fn probe_and_store_result(&self, app_state: Arc<AppState>) {
-        debug!(monotonic_counter.story_runs = 1, story_name=%self.name);
+        let meter = global::meter("story");
+        let story_runs = meter.u64_counter("story_runs").init();
+        let step_runs = meter.u64_counter("step_runs").init();
+        let story_failures = meter.u64_counter("story_failures").init();
+        let step_failures = meter.u64_counter("step_failures").init();
+        let step_duration = meter.u64_histogram("step_duration").init();
+        story_runs.add(1, &[KeyValue::new("story_name", self.name.clone())]);
+        let story_duration = meter.u64_histogram("story_duration").init();
         let mut story_variables = StoryVariables::new();
         let mut step_results: Vec<StepResult> = vec![];
         let timestamp_started = Utc::now();
@@ -82,7 +65,13 @@ impl Monitorable for Story {
         let root_cx = Context::default().with_span(root_span);
         for step in &self.steps {
             let step_started = Utc::now();
-            debug!(monotonic_counter.step_runs = 1, step_name=%step.name, story_name=%self.name);
+            step_runs.add(
+                1,
+                &[
+                    KeyValue::new("step_name", step.name.clone()),
+                    KeyValue::new("story_name", self.name.clone()),
+                ],
+            );
             let step_span = tracer.start_with_context(step.name.clone(), &root_cx);
             let step_cx = root_cx.with_span(step_span);
 
@@ -128,7 +117,20 @@ impl Monitorable for Story {
                     step_results.push(step_result);
 
                     if !expectations_result {
-                        step_duration!(step_started, self.name, step.name);
+                        step_duration.record(
+                            time_since(&step_started),
+                            &[
+                                KeyValue::new("step_name", step.name.clone()),
+                                KeyValue::new("story_name", self.name.clone()),
+                            ],
+                        );
+                        step_failures.add(
+                            1,
+                            &[
+                                KeyValue::new("step_name", step.name.clone()),
+                                KeyValue::new("story_name", self.name.clone()),
+                            ],
+                        );
                         break;
                     }
                     step_cx.span().set_status(Status::Ok);
@@ -138,7 +140,13 @@ impl Monitorable for Story {
                     story_variables
                         .steps
                         .insert(step.name.clone(), step_variables);
-                    step_duration!(step_started, self.name, step.name);
+                    step_duration.record(
+                        time_since(&timestamp_started),
+                        &[
+                            KeyValue::new("step_name", step.name.clone()),
+                            KeyValue::new("story_name", self.name.clone()),
+                        ],
+                    );
                 }
                 Err(e) => {
                     error!("Error calling endpoint: {}", e);
@@ -153,7 +161,13 @@ impl Monitorable for Story {
                         trace_id: None,
                         span_id: None,
                     });
-                    step_duration!(step_started, self.name, step.name);
+                    step_duration.record(
+                        time_since(&timestamp_started),
+                        &[
+                            KeyValue::new("step_name", step.name.clone()),
+                            KeyValue::new("story_name", self.name.clone()),
+                        ],
+                    );
                     break;
                 }
             };
@@ -161,10 +175,12 @@ impl Monitorable for Story {
         let last_step = step_results.last().unwrap();
         let story_success = last_step.success;
         if !story_success {
-            debug!(monotonic_counter.story_failures=1, story_name=%self.name);
-            debug!(monotonic_counter.step_failures=1, step_name=%last_step.step_name, story_name=%self.name);
+            story_failures.add(1, &[KeyValue::new("story_name", self.name.clone())]);
         }
-        story_duration!(timestamp_started, self.name);
+        story_duration.record(
+            time_since(&timestamp_started),
+            &[KeyValue::new("story_name", self.name.clone())],
+        );
 
         info!(
             "Finished scheduled story {}, success: {}",
@@ -202,7 +218,12 @@ impl Monitorable for Story {
 
 impl Monitorable for Probe {
     async fn probe_and_store_result(&self, app_state: Arc<AppState>) {
-        debug!(monotonic_counter.probe_runs = 1, probe_name=%self.name);
+        let meter = global::meter("probe");
+        let probe_runs = meter.u64_counter("probe_runs").init();
+        let probe_failures = meter.u64_counter("probe_failures").init();
+        let probe_duration = meter.u64_histogram("probe_duration").init();
+        probe_runs.add(1, &[KeyValue::new("probe_name", self.name.clone())]);
+
         let root_span = global::tracer("probe_logic").start(self.name.clone());
 
         let call_endpoint_result = call_endpoint(&self.http_method, &self.url, &self.with)
@@ -228,7 +249,7 @@ impl Monitorable for Probe {
                 }
             }
             Err(e) => {
-                debug!(monotonic_counter.probe_failures=1, probe_name=%self.name);
+                probe_failures.add(1, &[KeyValue::new("probe_name", self.name.clone())]);
                 error!("Error calling endpoint: {}", e);
                 ProbeResult {
                     probe_name: self.name.clone(),
@@ -243,7 +264,10 @@ impl Monitorable for Probe {
         let success = probe_result.success;
         let timestamp = probe_result.timestamp_started;
 
-        probe_duration!(timestamp, &self.name);
+        probe_duration.record(
+            time_since(&timestamp),
+            &[KeyValue::new("probe_name", self.name.clone())],
+        );
 
         info!(
             "Finished scheduled probe {}, success: {}",

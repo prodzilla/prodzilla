@@ -1,22 +1,35 @@
 use std::env;
 
 use opentelemetry::global;
+use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::propagation::TraceContextPropagator;
 
 use opentelemetry_sdk::trace::TracerProvider;
+use tracing::debug;
 
-use super::resource;
+use super::{create_otlp_export_config, resource};
 
 pub fn create_tracer() {
     let provider = match env::var("OTEL_TRACES_EXPORTER") {
         Ok(exporter) if exporter == "otlp" => {
-            let span_exporter = match opentelemetry_otlp::new_exporter()
-                .tonic()
-                .build_span_exporter()
-            {
-                Ok(exporter) => exporter,
-                Err(why) => {
-                    panic!("Failed to create OTLP exporter: {:?}", why);
+            let export_config = create_otlp_export_config();
+            let span_exporter = match export_config.protocol {
+                opentelemetry_otlp::Protocol::Grpc => {
+                    debug!("Using OTLP gRPC exporter");
+                    opentelemetry_otlp::new_exporter()
+                        .tonic()
+                        .with_export_config(export_config)
+                        .build_span_exporter()
+                        .unwrap()
+                }
+                _ => {
+                    debug!("Using OTLP HTTP exporter");
+                    opentelemetry_otlp::new_exporter()
+                        .http()
+                        .with_protocol(export_config.protocol)
+                        .with_endpoint(format!("{}/v1/traces", export_config.endpoint))
+                        .build_span_exporter()
+                        .unwrap()
                 }
             };
             TracerProvider::builder()

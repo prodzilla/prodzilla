@@ -1,11 +1,11 @@
-use std::time::Duration;
+use std::{env, time::Duration};
 
+use opentelemetry_otlp::{ExportConfig, Protocol};
 use opentelemetry_sdk::{
     metrics::SdkMeterProvider,
     resource::{EnvResourceDetector, ResourceDetector},
     Resource,
 };
-use tracing_opentelemetry::MetricsLayer;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
 
@@ -32,14 +32,30 @@ impl Drop for OtelGuard {
 
 pub fn init() -> OtelGuard {
     let meter_provider = metrics::create_meter_provider();
-    let metrics_layer = meter_provider.clone().map(MetricsLayer::new);
     tracing::create_tracer();
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
     tracing_subscriber::registry()
         .with(filter)
         .with(tracing_subscriber::fmt::layer())
-        .with(metrics_layer)
         .init();
 
     OtelGuard { meter_provider }
+}
+
+fn create_otlp_export_config() -> ExportConfig {
+    ExportConfig {
+        endpoint: env::var("OTEL_EXPORTER_OTLP_ENDPOINT")
+            .unwrap_or_else(|_| "http://localhost:4317".to_string()),
+        protocol: match env::var("OTEL_EXPORTER_OTLP_PROTOCOL") {
+            Ok(protocol) if protocol == "http/protobuf" => Protocol::HttpBinary,
+            Ok(protocol) if protocol == "http/json" => Protocol::HttpJson,
+            _ => Protocol::Grpc,
+        },
+        timeout: Duration::from_secs(
+            env::var("OTEL_EXPORTER_OTLP_TIMEOUT")
+                .unwrap_or_else(|_| "10".to_string())
+                .parse::<u64>()
+                .expect("OTEL_EXPORTER_OTLP_TIMEOUT must be a number"),
+        ),
+    }
 }
