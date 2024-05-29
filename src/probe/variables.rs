@@ -61,7 +61,7 @@ pub fn substitute_variables_in_headers(
 pub fn substitute_variables(content: &str, variables: &StoryVariables) -> String {
     SUB_REGEX
         .replace_all(content, |caps: &regex::Captures| {
-            let placeholder = &caps[1];
+            let placeholder = &caps[1].trim();
             let parts: Vec<&str> = placeholder.split('.').collect();
 
             match parts[0] {
