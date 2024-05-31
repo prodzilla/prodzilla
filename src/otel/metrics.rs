@@ -1,4 +1,7 @@
-use opentelemetry::global;
+use opentelemetry::{
+    global,
+    metrics::{Counter, Histogram},
+};
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::{
     metrics::{
@@ -69,4 +72,21 @@ pub fn create_meter_provider() -> Option<SdkMeterProvider> {
     global::set_meter_provider(meter_provider.clone());
 
     Some(meter_provider)
+}
+
+pub struct Metrics {
+    pub duration: Histogram<u64>,
+    pub runs: Counter<u64>,
+    pub errors: Counter<u64>,
+}
+
+impl Metrics {
+    pub fn new() -> Metrics {
+        let meter = opentelemetry::global::meter("prodzilla");
+        Metrics {
+            duration: meter.u64_histogram("duration").init(),
+            runs: meter.u64_counter("runs").init(),
+            errors: meter.u64_counter("errors").init(),
+        }
+    }
 }

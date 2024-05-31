@@ -2,6 +2,7 @@ use std::{collections::HashMap, sync::RwLock};
 
 use crate::{
     config::Config,
+    otel::metrics::Metrics,
     probe::model::{ProbeResult, StoryResult},
 };
 
@@ -12,6 +13,7 @@ pub struct AppState {
     pub probe_results: RwLock<HashMap<String, Vec<ProbeResult>>>,
     pub story_results: RwLock<HashMap<String, Vec<StoryResult>>>,
     pub config: Config,
+    pub metrics: Metrics,
 }
 
 impl AppState {
@@ -20,6 +22,7 @@ impl AppState {
             probe_results: RwLock::new(HashMap::new()),
             story_results: RwLock::new(HashMap::new()),
             config,
+            metrics: Metrics::new(),
         }
     }
 
