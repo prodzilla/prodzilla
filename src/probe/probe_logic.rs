@@ -120,6 +120,9 @@ impl Monitorable for Story {
                         app_state.metrics.errors.add(1, &step_tags);
                         break;
                     }
+                    // Add 0 to ensure this is exported with value 0, so e.g. rate
+                    // queries in promql don't miss the step from 0 -> 1
+                    app_state.metrics.errors.add(0, &step_tags);
                     step_cx.span().set_status(Status::Ok);
                     let step_variables = StepVariables {
                         response_body: step_results.last().unwrap().response.clone().unwrap().body,
@@ -157,6 +160,8 @@ impl Monitorable for Story {
         let story_success = last_step.success;
         if !story_success {
             app_state.metrics.errors.add(1, &story_attributes);
+        } else {
+            app_state.metrics.errors.add(0, &story_attributes);
         }
         app_state
             .metrics
@@ -220,6 +225,7 @@ impl Monitorable for Probe {
                     endpoint_result.body,
                     &self.expectations,
                 );
+                app_state.metrics.errors.add(0, &probe_attributes);
 
                 ProbeResult {
                     probe_name: self.name.clone(),
