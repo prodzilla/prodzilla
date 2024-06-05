@@ -58,7 +58,10 @@ pub mod probe_test_utils {
                 initial_delay: 0,
                 interval: 0,
             },
-            alerts: Some(vec![ProbeAlert { url: alert_url }]),
+            alerts: Some(vec![ProbeAlert {
+                url: Some(alert_url),
+                slack_webhook: None,
+            }]),
         }
     }
 

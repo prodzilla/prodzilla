@@ -7,6 +7,8 @@ use chrono::{DateTime, Utc};
 use lazy_static::lazy_static;
 use tracing::info;
 
+use super::model::SlackNotification;
+
 const REQUEST_TIMEOUT_SECS: u64 = 10;
 
 lazy_static! {
@@ -22,45 +24,39 @@ pub async fn alert_if_failure(
     failure_timestamp: DateTime<Utc>,
     alerts: &Option<Vec<ProbeAlert>>,
     trace_id: &Option<String>,
-) -> Result<(), Box<dyn std::error::Error + Send>> {
+) -> Result<(), Vec<Box<dyn std::error::Error + Send>>> {
     if success {
         return Ok(());
     }
-
+    let mut errors = Vec::new();
     if let Some(alerts_vec) = alerts {
         for alert in alerts_vec {
-            send_alert(
+            if let Err(e) = send_alert(
                 alert,
                 probe_name.to_owned(),
                 failure_timestamp,
                 trace_id.clone(),
             )
-            .await?;
+            .await
+            {
+                errors.extend(e);
+            }
         }
     }
 
-    Ok(())
+    if !errors.is_empty() {
+        Err(errors)
+    } else {
+        Ok(())
+    }
 }
 
-pub async fn send_alert(
-    alert: &ProbeAlert,
-    probe_name: String,
-    failure_timestamp: DateTime<Utc>,
-    trace_id: Option<String>,
+pub async fn send_generic_webhook(
+    url: &String,
+    body: String,
 ) -> Result<(), Box<dyn std::error::Error + Send>> {
-    // When we have other alert types, add them in some kind of switch here
-
-    let mut request = CLIENT.post(&alert.url);
-
-    let request_body = WebhookNotification {
-        message: "Probe failed.".to_owned(),
-        probe_name,
-        failure_timestamp,
-        trace_id,
-    };
-
-    let json = serde_json::to_string(&request_body).map_to_send_err()?;
-    request = request.body(json);
+    let mut request = CLIENT.post(url);
+    request = request.body(body);
 
     let alert_response = request
         .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
@@ -73,6 +69,68 @@ pub async fn send_alert(
     );
 
     Ok(())
+}
+
+pub async fn send_webhook_alert(
+    url: &String,
+    probe_name: String,
+    failure_timestamp: DateTime<Utc>,
+    trace_id: Option<String>,
+) -> Result<(), Box<dyn std::error::Error + Send>> {
+    let request_body = WebhookNotification {
+        message: "Probe failed.".to_owned(),
+        probe_name,
+        failure_timestamp,
+        trace_id,
+    };
+
+    let json = serde_json::to_string(&request_body).map_to_send_err()?;
+    send_generic_webhook(url, json).await
+}
+
+pub async fn send_slack_alert(
+    webhook_url: &String,
+    probe_name: String,
+    failure_timestamp: DateTime<Utc>,
+    trace_id: Option<String>,
+) -> Result<(), Box<dyn std::error::Error + Send>> {
+    let request_body = SlackNotification {
+        text: format!(
+            "Probe {} failed at {}. Trace ID: {}",
+            probe_name,
+            failure_timestamp,
+            trace_id.unwrap_or_else(|| "N/A".to_owned())
+        ),
+    };
+    let json = serde_json::to_string(&request_body).map_to_send_err()?;
+    send_generic_webhook(webhook_url, json).await
+}
+
+pub async fn send_alert(
+    alert: &ProbeAlert,
+    probe_name: String,
+    failure_timestamp: DateTime<Utc>,
+    trace_id: Option<String>,
+) -> Result<(), Vec<Box<dyn std::error::Error + Send>>> {
+    // When we have other alert types, add them in some kind of switch here
+    let mut errors = Vec::new();
+    if let Some(url) = &alert.url {
+        if let Err(e) =
+            send_webhook_alert(url, probe_name.clone(), failure_timestamp, trace_id.clone()).await
+        {
+            errors.push(e);
+        };
+    }
+    if let Some(url) = &alert.slack_webhook {
+        if let Err(e) = send_slack_alert(url, probe_name, failure_timestamp, trace_id).await {
+            errors.push(e);
+        };
+    }
+    if !errors.is_empty() {
+        Err(errors)
+    } else {
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -100,7 +158,8 @@ mod webhook_tests {
 
         let probe_name = "Some Flow".to_owned();
         let alerts = Some(vec![ProbeAlert {
-            url: format!("{}{}", mock_server.uri(), alert_url.to_owned()),
+            url: Some(format!("{}{}", mock_server.uri(), alert_url.to_owned())),
+            slack_webhook: None,
         }]);
         let failure_timestamp = Utc::now();
 

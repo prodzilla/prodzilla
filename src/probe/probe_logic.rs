@@ -182,7 +182,9 @@ impl Monitorable for Story {
         )
         .await;
         if let Err(e) = send_alert_result {
-            error!("Error sending out alert: {}", e);
+            for error in e {
+                error!("Error sending out alert: {}", error);
+            }
         }
         let story_result = StoryResult {
             story_name: self.name.clone(),
@@ -270,7 +272,9 @@ impl Monitorable for Probe {
         )
         .await;
         if let Err(e) = send_alert_result {
-            error!("Error sending out alert: {}", e);
+            for error in e {
+                error!("Error sending out alert: {}", error);
+            }
         }
         app_state.add_probe_result(self.name.clone(), probe_result);
     }
@@ -413,7 +417,8 @@ mod probe_logic_tests {
                 interval: 0,
             },
             alerts: Some(vec![ProbeAlert {
-                url: format!("{}{}", mock_server.uri(), alert_path.to_owned()),
+                url: Some(format!("{}{}", mock_server.uri(), alert_path.to_owned())),
+                slack_webhook: None,
             }]),
         };
 

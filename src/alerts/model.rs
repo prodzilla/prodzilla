@@ -9,3 +9,8 @@ pub struct WebhookNotification {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trace_id: Option<String>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SlackNotification {
+    pub text: String
+}
