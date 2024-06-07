@@ -291,7 +291,6 @@ impl Monitorable for Probe {
 mod probe_logic_tests {
 
     use std::collections::HashMap;
-    use std::env;
     use std::sync::Arc;
 
     use crate::app_state::AppState;
@@ -448,14 +447,9 @@ mod probe_logic_tests {
                 "Authorization".to_owned(),
                 "Bearer ${{steps.step1.response.body.token}}".to_owned(),
             ),
-            (
-                "X-Environment".to_owned(),
-                "${{env.ENVIRONMENT}}".to_owned(),
-            ),
         ]);
         let step2_body_str = r#"{"uuid": "${{generate.uuid}}"}"#;
 
-        env::set_var("ENVIRONMENT", "test");
         let story_name = "User Flow";
         let app_state = Arc::new(AppState::new(Config {
             probes: vec![],
@@ -472,7 +466,6 @@ mod probe_logic_tests {
         Mock::given(method("POST"))
             .and(path(step2_constructed_path))
             .and(header("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"))
-            .and(header("X-Environment", "test"))
             .respond_with(ResponseTemplate::new(200))
             .expect(1)
             .mount(&mock_server)
