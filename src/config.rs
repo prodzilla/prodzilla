@@ -23,7 +23,7 @@ pub async fn load_config<P: Into<PathBuf>>(path: P) -> Result<Config, Box<dyn st
 }
 
 pub fn replace_env_vars(content: &str) -> String {
-    let re = regex::Regex::new(r"\$\{\{\s+env\.(.*?)\s+\}\}").unwrap();
+    let re = regex::Regex::new(r"\$\{\{\s*env\.(.*?)\s*\}\}").unwrap();
     let replaced = re.replace_all(content, |caps: &regex::Captures| {
         let var_name = &caps[1];
         // panics on missing enivronment variables, probably desirable?
