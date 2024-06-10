@@ -64,10 +64,10 @@ mod config_tests {
     #[tokio::test]
     async fn test_env_substitution() {
         env::set_var("TEST_ENV_VAR", "test_value");
-        let content = "Environment variable ${{ env.TEST_ENV_VAR }} should be replaced, missing ${{ env.MISSING_VAR }} should be empty";
+        let content = "Environment variable ${{ env.TEST_ENV_VAR }} should be replaced even with varying whitespace ${{env.TEST_ENV_VAR}}${{ env.TEST_ENV_VAR}}  ${{env.TEST_ENV_VAR }}${{ env.TEST_ENV_VAR     }}, missing ${{ env.MISSING_VAR }} should be empty";
         let replaced = super::replace_env_vars(content);
         assert_eq!(
-            "Environment variable test_value should be replaced, missing  should be empty",
+            "Environment variable test_value should be replaced even with varying whitespace test_valuetest_value  test_valuetest_value, missing  should be empty",
             replaced
         );
     }
