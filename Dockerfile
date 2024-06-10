@@ -24,7 +24,7 @@ WORKDIR /app
 COPY --from=xx / /
 
 # Install host build dependencies.
-RUN apk add --no-cache clang lld musl-dev git file libssl-dev pkg-config
+RUN apk add --no-cache clang lld musl-dev git file libressl-dev pkgconfig
 
 # This is the architecture you’re building for, which is passed in by the builder.
 # Placing it here allows the previous steps to be cached across architectures.
@@ -83,4 +83,4 @@ COPY --from=build /bin/$APP_NAME /bin/
 EXPOSE 3000
 
 # What the container should run when it is started.
-ENTRYPOINT ["/bin/$APP_NAME"]
+ENTRYPOINT ["/bin/prodzilla"]
