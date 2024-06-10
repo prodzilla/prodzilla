@@ -24,7 +24,7 @@ WORKDIR /app
 COPY --from=xx / /
 
 # Install host build dependencies.
-RUN apk add --no-cache clang lld musl-dev git file
+RUN apk add --no-cache clang lld musl-dev git file libssl-dev pkg-config
 
 # This is the architecture you’re building for, which is passed in by the builder.
 # Placing it here allows the previous steps to be cached across architectures.
