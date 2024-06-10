@@ -115,7 +115,7 @@ stories:
 One unique aspect of Prodzilla is the ability to substitute in values from earlier steps, environment variables, or generated values, as in the example above. Prodzilla currently supports the following variable substitutions.
 
 | Substitute Value                             | Behaviour                                                                                                            |
-|----------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | ${{steps.step-name.response.body}}           | Inserts the whole response body from the given step.                                                                 |
 | ${{steps.step-name.response.body.fieldName}} | Inserts the value of a specific JSON field from a response body from a given step. Doesn't currently support arrays. |
 | ${{generate.uuid}}                           | Inserts a generated UUID.                                                                                            |
@@ -140,6 +140,7 @@ If expectations aren't met for a Probe or Story, a webhook will be sent to any u
       ...
       alerts:
         - url: https://webhook.site/54a9a526-c104-42a7-9b76-788e897390d8 
+        - slack_webhook: https://hooks.slack.com/services/T000/B000/XXXX
 
 ```
 
@@ -148,10 +149,15 @@ The webhook looks as such:
 {
   "message": "Probe failed.",
   "probe_name": "Your Probe",
-  "failure_timestamp": "2024-01-26T02:41:02.983025Z"
+  "failure_timestamp": "2024-01-26T02:41:02.983025Z",
+  "trace_id": "123456789abcdef"
 }
 
 ```
+
+Slack webhooks can also be used through the `slack_webhook` parameter, which are formatted like
+
+> Probe Your Probe failed at 2024-06-10 08:16:33.935659994 UTC. Trace ID: 123456789abcdef
 
 Slack, OpsGenie, and PagerDuty notification integrations are planned.
 
