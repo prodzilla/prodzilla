@@ -27,6 +27,11 @@ To be part of the community, or for any questions, join our [Discord](https://di
    - [Get Probes and Stories](#get-probes-and-stories)
    - [Get Probe and Story Results](#get-probe-and-story-results)
    - [Trigger Probe or Story (In Development)](#trigger-probe-or-story-in-development)
+- [Monitoring Prodzilla](#monitoring-prodzilla)
+   - [Tracked metrics](#tracked-metrics)
+   - [Traces](#traces)
+   - [Configuring OpenTelemetry export](#configuring-opentelemetry-export)
+   - [Configuring log level](#configuring-log-level)
 - [Deploying on Shuttle for Free](#deploying-on-shuttle-for-free)
 - [Feature Roadmap](#feature-roadmap)
 
@@ -38,7 +43,13 @@ To get started probing your services, clone this repo, and in the root execute t
 cargo run
 ```
 
-The application parses the [prodzilla.yml](/prodzilla.yml) file to generate a list of probes executed on a given schedule, and decide how to alert.
+You can also use Docker, as Prodzilla is published to `ghcr.io/prodzilla/prodzilla`:
+
+```
+docker run -v $(pwd)/prodzilla.yml:/prodzilla.yml ghcr.io/prodzilla/prodzilla:main
+```
+
+The application parses the [prodzilla.yml](/prodzilla.yml) file to generate a list of probes executed on a given schedule, and decide how to alert. Other configuration file paths can be selected using the `-f` flag. Execute `cargo run -- --help` or `prodzilla --help` to see a full list of configuration flags. 
 
 The bare minimum config required is: 
 
@@ -122,7 +133,7 @@ One unique aspect of Prodzilla is the ability to substitute in values from earli
 | ${{env.VAR_NAME}}                            | Insert the environment variable VAR_NAME                                                                             |
 
 Note that if a step name is used in a parameter but does not yet exist, Prodzilla will default to substituting an empty string.
-If a requested environment variable is not set, Prodzilla will panic in order to avoid silent errors.
+If a requested environment variable is not set, Prodzilla will log a warning and substitute an empty string.
 
 ### Expectations
 
@@ -243,6 +254,45 @@ Example Response (for stories, probes will look slightly different):
     ]
 }
 ```
+
+## Monitoring Prodzilla
+Prodzilla generates OpenTelemetry traces and metrics for each probe and story execution. 
+It also outputs structured logs to standard out.
+
+### Tracked metrics
+Prodzilla tracks the following metrics:
+
+| Name     | Type           | Description                                  |
+| -------- | -------------- | -------------------------------------------- |  |
+| runs     | Counter(u64)   | The total number of executions for this test |
+| duration | Histogram(u64) | Time taken to execute the test               |
+| errors   | Counter(u64)   | The total number of errors for this test     |
+
+All metrics have the attributes `name` and `type`. 
+`type` is either `probe` for metrics measuring a probe, `story` for metrics measuring an entire story, or `step` for measuring an individual step in a story. 
+`name` is the name of the probe, story, or step that is being measured.
+Metrics for an individual step have the additional attribute `story_name` which is the name of the story that the step is part of.
+
+
+### Traces
+Prodzilla generates a root span for each story or probe that is being run, and further spans for each step and HTTP call that is made within that test. The trace ID is propagated in these HTTP requests to downstream services, enabling fully distributed insight into the backends that are being called.
+
+Errors occuring in steps and probes or expectations not being met lead to the span in question being marked with the `error` status. Furthermore, the error message and truncated HTTP response body is attached as a span event. 
+
+### Configuring OpenTelemetry export
+Both metrics and traces can be exported with the OTLP protocol over either HTTP or gRPC. 
+Configuration follows the OpenTelemetry standard environment variables:
+
+- `OTEL_EXPORTER_OTLP_ENDPOINT` is used to define the collector endpoint. Defaults to `http://localhost:431`
+- `OTEL_EXPORTER_OTLP_PROTOCOL` is used to define the protocol that is used in export. Supported values are `http/protobuf`, `http/json` and `grpc`. Defaults to `grpc`.
+- `OTEL_EXPORTER_OTLP_TIMEOUT` is used to set an exporter timeout in seconds. Defaults to 10 seconds.
+- `OTEL_METRICS_EXPORTER` is used to define how metrics are exported. Supported values are `otlp` and `stdout`. If unset, metrics will not be exported.
+- `OTEL_TRACES_EXPORTER` is used to define how traces are exported. Supported values are `otlp` and `stdout`. If unset, traces will not exported.
+
+Furthermore, resource attributes can be set with `OTEL_RESOURCE_ATTRIBUTES`.
+
+### Configuring log level
+The logging level can be set using the environment variable `RUST_LOG`. Supported levels are `trace`, `debug`, `info`, `warn`, and `error` in ascending order of severity.
 
 ## Deploying on Shuttle for Free
 
