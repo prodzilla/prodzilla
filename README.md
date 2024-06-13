@@ -15,20 +15,20 @@ To be part of the community, or for any questions, join our [Discord](https://di
 
 ## Table of Contents
 
-1. [Table of Contents](#table-of-contents)
-2. [Getting Started](#getting-started)
-3. [Configuring Synthetic Monitors](#configuring-synthetic-monitors)
-   1. [Probes](#probes)
-   2. [Stories](#stories)
-   3. [Variables](#variables)
-   4. [Expectations](#expectations)
-4. [Notifications for Failures](#notifications-for-failures)
-5. [Prodzilla Server Endpoints](#prodzilla-server-endpoints)
-   1. [Get Probes and Stories](#get-probes-and-stories)
-   2. [Get Probe and Story Results](#get-probe-and-story-results)
-   3. [Trigger Probe or Story (In Development)](#trigger-probe-or-story-in-development)
-6. [Deploying on Shuttle for Free](#deploying-on-shuttle-for-free)
-7. [Feature Roadmap](#feature-roadmap)
+- [Table of Contents](#table-of-contents)
+- [Getting Started](#getting-started)
+- [Configuring Synthetic Monitors](#configuring-synthetic-monitors)
+   - [Probes](#probes)
+   - [Stories](#stories)
+   - [Variables](#variables)
+   - [Expectations](#expectations)
+- [Notifications for Failures](#notifications-for-failures)
+- [Prodzilla Server Endpoints](#prodzilla-server-endpoints)
+   - [Get Probes and Stories](#get-probes-and-stories)
+   - [Get Probe and Story Results](#get-probe-and-story-results)
+   - [Trigger Probe or Story (In Development)](#trigger-probe-or-story-in-development)
+- [Deploying on Shuttle for Free](#deploying-on-shuttle-for-free)
+- [Feature Roadmap](#feature-roadmap)
 
 ## Getting Started
 
