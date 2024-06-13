@@ -274,11 +274,12 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
     - Status code :white_check_mark:
     - Response body :white_check_mark:
     - Specific fields
-    - Regex
+    - Regex :white_check_mark:
 - Yaml Objects / Reusable parameters / Human Readability
     - Reusable Request bodies
     - Reusable Authenticated users
     - Reusable Validation
+    - Environment variable interpolation in configuration file :white_check_mark:
 - Result storage
     - In Memory :white_check_mark:
     - In a Database
@@ -303,6 +304,9 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
 - CI / CD Integration
     - Standalone easy-to-install image :bricks:
     - Github Actions integration to trigger tests / use as smoke tests :bricks:
+    - Docker images for main branch and tagged releases :white_check_mark:
 - Otel Support
     - TraceIds for every request :white_check_mark:
+    - OTLP trace export over gRPC or HTTP :white_check_mark:
+    - Metrics for runs, durations and failures exported over OTLP :white_check_mark:
 
