@@ -16,7 +16,15 @@ pub struct Config {
 
 pub async fn load_config<P: Into<PathBuf>>(path: P) -> Result<Config, Box<dyn std::error::Error>> {
     let path = path.into();
-    let config = tokio::fs::read_to_string(path).await?;
+    let config = match tokio::fs::read_to_string(path.clone()).await {
+        Ok(content) => content,
+        Err(ref e) if e.kind() == std::io::ErrorKind::NotFound => {
+            panic!("Config file not found: {:?}", path)
+        }
+        Err(e) => {
+            panic!("Failed to read config file: {:?}, err {}", path, e)
+        }
+    };
     let config = replace_env_vars(&config);
     let config: Config = serde_yaml::from_str(&config)?;
     Ok(config)
