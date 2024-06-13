@@ -40,7 +40,7 @@ pub fn create_tracer() {
         Ok(exporter) if exporter == "stdout" => TracerProvider::builder()
             .with_simple_exporter(opentelemetry_stdout::SpanExporter::default())
             .build(),
-        _ => return,
+        _ => TracerProvider::default(),
     };
     global::set_tracer_provider(provider);
     global::set_text_map_propagator(TraceContextPropagator::new());
