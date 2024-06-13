@@ -6,7 +6,7 @@ FROM --platform=$BUILDPLATFORM rust:${RUST_VERSION}-alpine AS build
 
 WORKDIR /app
 
-RUN apk add --no-cache musl-dev libressl-dev
+RUN apk add --no-cache musl-dev perl make
 
 COPY . .
 RUN cargo build --locked --release --target-dir target && cp ./target/release/prodzilla /bin/prodzilla
