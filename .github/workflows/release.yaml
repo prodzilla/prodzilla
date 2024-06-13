@@ -1,0 +1,44 @@
+name: Release
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - v[0-9]+.*
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # v1 tag as of 2024-06-13
+      - uses: taiki-e/create-gh-release-action@72d65cee1f8033ef0c8b5d79eaf0c45c7c578ce3
+        with:
+          # (required) GitHub token for creating GitHub Releases.
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  upload-assets:
+    needs: create-release
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+          - target: aarch64-unknown-linux-gnu
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Install dependencies
+      # latest commit as of 2024-06-13
+      - uses: awalsh128/cache-apt-pkgs-action@f2fc6d1af4d6abf8a4dcd37fd74a9a15c2273b9f
+        with:
+          packages: libssl-dev pkg-config
+        #  v1.21.0 as of 2024-06-13
+      - uses: taiki-e/upload-rust-binary-action@b988355f8b505d51359af5c8d4afc3646c3fac1e
+        with:
+          bin: prodzilla
+          target: ${{ matrix.target }}
+          tar: unix
+          zip: windows
+          token: ${{ secrets.GITHUB_TOKEN }}
