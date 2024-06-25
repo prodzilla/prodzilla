@@ -421,8 +421,7 @@ mod probe_logic_tests {
                 interval: 0,
             },
             alerts: Some(vec![ProbeAlert {
-                url: Some(format!("{}{}", mock_server.uri(), alert_path.to_owned())),
-                slack_webhook: None,
+                url: format!("{}{}", mock_server.uri(), alert_path.to_owned()),
             }]),
         };
 

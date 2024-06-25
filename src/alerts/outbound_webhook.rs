@@ -46,7 +46,7 @@ pub async fn alert_if_failure(
             )
             .await
             {
-                errors.extend(e);
+                errors.push(e);
             }
         }
     }
@@ -123,33 +123,29 @@ pub async fn send_alert(
     error_message: &str,
     failure_timestamp: DateTime<Utc>,
     trace_id: Option<String>,
-) -> Result<(), Vec<Box<dyn std::error::Error + Send>>> {
-    // When we have other alert types, add them in some kind of switch here
-    let mut errors = Vec::new();
-    if let Some(url) = &alert.url {
-        if let Err(e) = send_webhook_alert(
-            url,
-            probe_name.clone(),
-            error_message,
-            failure_timestamp,
-            trace_id.clone(),
-        )
-        .await
-        {
-            errors.push(e);
-        };
-    }
-    if let Some(url) = &alert.slack_webhook {
-        if let Err(e) =
-            send_slack_alert(url, probe_name, error_message, failure_timestamp, trace_id).await
-        {
-            errors.push(e);
-        };
-    }
-    if !errors.is_empty() {
-        Err(errors)
-    } else {
-        Ok(())
+) -> Result<(), Box<dyn std::error::Error + Send>> {
+    let domain = alert.url.split('/').nth(2).unwrap_or("");
+    match domain {
+        "hooks.slack.com" => {
+            send_slack_alert(
+                &alert.url,
+                probe_name.clone(),
+                error_message,
+                failure_timestamp,
+                trace_id.clone(),
+            )
+            .await
+        }
+        _ => {
+            send_webhook_alert(
+                &alert.url,
+                probe_name.clone(),
+                error_message,
+                failure_timestamp,
+                trace_id.clone(),
+            )
+            .await
+        }
     }
 }
 
@@ -178,8 +174,7 @@ mod webhook_tests {
 
         let probe_name = "Some Flow".to_owned();
         let alerts = Some(vec![ProbeAlert {
-            url: Some(format!("{}{}", mock_server.uri(), alert_url.to_owned())),
-            slack_webhook: None,
+            url: format!("{}{}", mock_server.uri(), alert_url.to_owned()),
         }]);
         let failure_timestamp = Utc::now();
 

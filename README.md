@@ -151,7 +151,7 @@ If expectations aren't met for a Probe or Story, a webhook will be sent to any u
       ...
       alerts:
         - url: https://webhook.site/54a9a526-c104-42a7-9b76-788e897390d8 
-        - slack_webhook: https://hooks.slack.com/services/T000/B000/XXXX
+        - url: https://hooks.slack.com/services/T000/B000/XXXX
 
 ```
 
@@ -161,16 +161,17 @@ The webhook looks as such:
   "message": "Probe failed.",
   "probe_name": "Your Probe",
   "failure_timestamp": "2024-01-26T02:41:02.983025Z",
-  "trace_id": "123456789abcdef"
+  "trace_id": "123456789abcdef",
+  "error_message": "Failed to meet expectation for field 'StatusCode' with operation Equals \"200\". Received: status '500', body '\"Internal Server Error\"' (truncatated to 100 characters)."
 }
 
 ```
 
-Slack webhooks can also be used through the `slack_webhook` parameter, which are formatted like
+Prodzilla will also recognize the Slack webhook domain `hooks.slack.com` and produce messages like:
 
-> Probe Your Probe failed at 2024-06-10 08:16:33.935659994 UTC. Trace ID: 123456789abcdef
+> Probe Your Probe failed at 2024-06-10 08:16:33.935659994 UTC. Trace ID: 123456789abcdef. Error: Failed to meet expectation for field 'StatusCode' with operation Equals "200". Received: status '500', body '"Internal Server Error"' (truncatated to 100 characters).
 
-Slack, OpsGenie, and PagerDuty notification integrations are planned.
+OpsGenie, and PagerDuty notification integrations are planned.
 
 ## Prodzilla Server Endpoints
 
@@ -262,8 +263,8 @@ It also outputs structured logs to standard out.
 ### Tracked metrics
 Prodzilla tracks the following metrics:
 
-| Name     | Type           | Description                                  |
-| -------- | -------------- | -------------------------------------------- |  |
+| Name | Type | Description |
+| ---- | ---- | ----------- ||
 | runs     | Counter(u64)   | The total number of executions for this test |
 | duration | Histogram(u64) | Time taken to execute the test               |
 | errors   | Counter(u64)   | The total number of errors for this test     |
