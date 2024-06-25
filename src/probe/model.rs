@@ -62,6 +62,8 @@ pub struct ProbeResult {
     pub timestamp_started: DateTime<Utc>,
     pub success: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub error_message: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub response: Option<ProbeResponse>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trace_id: Option<String>,
@@ -106,6 +108,8 @@ pub struct StepResult {
     pub step_name: String,
     pub timestamp_started: DateTime<Utc>,
     pub success: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error_message: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub response: Option<ProbeResponse>,
     #[serde(skip_serializing_if = "Option::is_none")]

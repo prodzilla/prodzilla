@@ -86,40 +86,38 @@ impl Monitorable for Story {
                         semconv::trace::HTTP_RESPONSE_STATUS_CODE,
                         endpoint_result.status_code.to_string(),
                     ));
-                    let expectations_result = match validate_response(
+                    let expectations_result = validate_response(
                         &step.name,
                         endpoint_result.status_code,
                         endpoint_result.body,
                         &step.expectations,
-                    ) {
-                        Ok(_) => true,
-                        Err(e) => {
-                            span.record_error(&e);
-                            span.set_status(Status::Error {
-                                description: "Expectation failed".into(),
-                            });
-                            false
-                        }
-                    };
-
+                    );
+                    if expectations_result.is_err() {
+                        span.record_error(expectations_result.as_ref().err().unwrap());
+                        span.set_status(Status::Error {
+                            description: "Expectation failed".into(),
+                        });
+                        app_state
+                            .metrics
+                            .duration
+                            .record(time_since(&step_started), &step_tags);
+                        app_state.metrics.errors.add(1, &step_tags);
+                    }
                     let step_result = StepResult {
                         step_name: step.name.clone(),
                         timestamp_started: endpoint_result.timestamp_request_started,
-                        success: expectations_result,
+                        success: expectations_result.is_ok(),
+                        error_message: expectations_result.as_ref().err().map(|e| e.to_string()),
                         response: Some(probe_response),
                         trace_id: Some(endpoint_result.trace_id),
                         span_id: Some(endpoint_result.span_id),
                     };
                     step_results.push(step_result);
 
-                    if !expectations_result {
-                        app_state
-                            .metrics
-                            .duration
-                            .record(time_since(&step_started), &step_tags);
-                        app_state.metrics.errors.add(1, &step_tags);
+                    if expectations_result.is_err() {
                         break;
                     }
+
                     // Add 0 to ensure this is exported with value 0, so e.g. rate
                     // queries in promql don't miss the step from 0 -> 1
                     app_state.metrics.errors.add(0, &step_tags);
@@ -143,6 +141,7 @@ impl Monitorable for Story {
                     step_results.push(StepResult {
                         step_name: step.name.clone(),
                         success: false,
+                        error_message: Some(e.to_string()),
                         timestamp_started: Utc::now(),
                         response: None,
                         trace_id: None,
@@ -175,6 +174,7 @@ impl Monitorable for Story {
 
         let send_alert_result = alert_if_failure(
             story_success,
+            last_step.error_message.as_deref(),
             &self.name,
             timestamp_started,
             &self.alerts,
@@ -232,6 +232,7 @@ impl Monitorable for Probe {
                     probe_name: self.name.clone(),
                     timestamp_started: endpoint_result.timestamp_request_started,
                     success: expectations_result.is_ok(),
+                    error_message: expectations_result.err().map(|e| e.to_string()),
                     response: Some(probe_response),
                     trace_id: Some(endpoint_result.trace_id),
                 }
@@ -239,17 +240,17 @@ impl Monitorable for Probe {
             Err(e) => {
                 error!("Error calling endpoint: {}", e);
                 ProbeResult {
+                    success: false,
                     probe_name: self.name.clone(),
                     timestamp_started: Utc::now(),
-                    success: false,
+                    error_message: Some(e.to_string()),
                     response: None,
                     trace_id: None,
                 }
             }
         };
 
-        let success = probe_result.success;
-        if success {
+        if probe_result.success {
             app_state.metrics.errors.add(0, &probe_attributes);
         } else {
             app_state.metrics.errors.add(1, &probe_attributes);
@@ -263,11 +264,12 @@ impl Monitorable for Probe {
 
         info!(
             "Finished scheduled probe {}, success: {}",
-            &self.name, success
+            &self.name, probe_result.success,
         );
 
         let send_alert_result = alert_if_failure(
-            success,
+            probe_result.success,
+            probe_result.error_message.as_deref(),
             &self.name,
             timestamp,
             &self.alerts,
