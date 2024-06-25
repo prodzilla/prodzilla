@@ -227,7 +227,6 @@ impl Monitorable for Probe {
                     endpoint_result.body,
                     &self.expectations,
                 );
-                app_state.metrics.errors.add(0, &probe_attributes);
 
                 ProbeResult {
                     probe_name: self.name.clone(),
@@ -238,7 +237,6 @@ impl Monitorable for Probe {
                 }
             }
             Err(e) => {
-                app_state.metrics.errors.add(1, &probe_attributes);
                 error!("Error calling endpoint: {}", e);
                 ProbeResult {
                     probe_name: self.name.clone(),
@@ -251,6 +249,11 @@ impl Monitorable for Probe {
         };
 
         let success = probe_result.success;
+        if success {
+            app_state.metrics.errors.add(0, &probe_attributes);
+        } else {
+            app_state.metrics.errors.add(1, &probe_attributes);
+        }
         let timestamp = probe_result.timestamp_started;
 
         app_state
@@ -442,12 +445,10 @@ mod probe_logic_tests {
 
         let step2_path = "/${{steps.step1.response.body.path}}/test2";
         let step2_constructed_path = "/value/test2";
-        let step2_headers = HashMap::from([
-            (
-                "Authorization".to_owned(),
-                "Bearer ${{steps.step1.response.body.token}}".to_owned(),
-            ),
-        ]);
+        let step2_headers = HashMap::from([(
+            "Authorization".to_owned(),
+            "Bearer ${{steps.step1.response.body.token}}".to_owned(),
+        )]);
         let step2_body_str = r#"{"uuid": "${{generate.uuid}}"}"#;
 
         let story_name = "User Flow";
