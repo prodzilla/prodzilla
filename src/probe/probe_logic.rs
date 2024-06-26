@@ -175,6 +175,7 @@ impl Monitorable for Story {
         let send_alert_result = alert_if_failure(
             story_success,
             last_step.error_message.as_deref(),
+            last_step.response.as_ref(),
             &self.name,
             timestamp_started,
             &self.alerts,
@@ -270,6 +271,7 @@ impl Monitorable for Probe {
         let send_alert_result = alert_if_failure(
             probe_result.success,
             probe_result.error_message.as_deref(),
+            probe_result.response.as_ref(),
             &self.name,
             timestamp,
             &self.alerts,

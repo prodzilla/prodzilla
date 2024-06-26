@@ -29,8 +29,8 @@ impl std::fmt::Display for ExpectationFailedError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
             f,
-            "Failed to meet expectation for field '{:?}' with operation {:?} {:?}. Received: status '{}', body '{}' (truncatated to 100 characters).",
-            self.field, self.operation, self.expected, self.status_code, self.body.chars().take(100).collect::<String>()
+            "Failed to meet expectation for field '{:?}' with operation {:?} {:?}.",
+            self.field, self.operation, self.expected,
         )
     }
 }

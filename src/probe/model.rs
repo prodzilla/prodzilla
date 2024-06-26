@@ -75,6 +75,12 @@ pub struct ProbeResponse {
     pub body: String,
 }
 
+impl ProbeResponse {
+    pub fn truncated_body(&self, n: usize) -> String {
+        self.body.chars().take(n).collect()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Story {
     pub name: String,
