@@ -92,8 +92,8 @@ impl Monitorable for Story {
                         endpoint_result.body,
                         &step.expectations,
                     );
-                    if expectations_result.is_err() {
-                        span.record_error(expectations_result.as_ref().err().unwrap());
+                    if let Err(err) = expectations_result.as_ref() {
+                        span.record_error(&err);
                         span.set_status(Status::Error {
                             description: "Expectation failed".into(),
                         });
