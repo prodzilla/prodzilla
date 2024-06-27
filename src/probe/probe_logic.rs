@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use opentelemetry::global;
-use opentelemetry::global::ObjectSafeSpan;
 use opentelemetry::trace;
 use opentelemetry::trace::FutureExt;
 use opentelemetry::trace::Status;
