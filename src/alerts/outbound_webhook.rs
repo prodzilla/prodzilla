@@ -37,11 +37,15 @@ pub async fn alert_if_failure(
         Some(_) => Some("Redacted".to_owned()),
         None => None,
     };
+    let log_body = truncated_body
+        .as_ref()
+        .unwrap_or(&"N/A".to_owned())
+        .replace('\n', "\\n");
     warn!(
         "Probe {probe_name} failed at {failure_timestamp} with trace ID {}. Status code: {}. Error: {error_message}. Body: {}",
         trace_id.as_ref().unwrap_or(&"N/A".to_owned()),
         status_code.map_or("N/A".to_owned(), |code| code.to_string()),
-        truncated_body.as_ref().unwrap_or(&"N/A".to_owned()),
+        log_body,
     );
     let mut errors = Vec::new();
     if let Some(alerts_vec) = alerts {
