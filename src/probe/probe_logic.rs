@@ -74,7 +74,7 @@ impl Monitorable for Story {
             let url = substitute_variables(&step.url, &story_variables);
             let input_parameters = substitute_input_parameters(&step.with, &story_variables);
 
-            let call_endpoint_result = call_endpoint(&step.http_method, &url, &input_parameters)
+            let call_endpoint_result = call_endpoint(&step.http_method, &url, &input_parameters, step.sensitive)
                 .with_context(step_cx.clone())
                 .await;
 
@@ -215,7 +215,7 @@ impl Monitorable for Probe {
 
         let root_span = global::tracer("probe_logic").start(self.name.clone());
 
-        let call_endpoint_result = call_endpoint(&self.http_method, &self.url, &self.with)
+        let call_endpoint_result = call_endpoint(&self.http_method, &self.url, &self.with, self.sensitive)
             .with_context(Context::current_with_span(root_span))
             .await;
 
@@ -344,6 +344,7 @@ mod probe_logic_tests {
                     with: None,
                     http_method: "GET".to_owned(),
                     expectations: None,
+                    sensitive: false,
                 },
                 Step {
                     name: "Step 2".to_owned(),
@@ -351,6 +352,7 @@ mod probe_logic_tests {
                     with: None,
                     http_method: "GET".to_owned(),
                     expectations: None,
+                    sensitive: false,
                 },
             ],
             schedule: ProbeScheduleParameters {
@@ -405,6 +407,7 @@ mod probe_logic_tests {
                     with: None,
                     http_method: "GET".to_owned(),
                     expectations: None,
+                    sensitive: false,
                 },
                 Step {
                     name: "Step 2".to_owned(),
@@ -416,6 +419,7 @@ mod probe_logic_tests {
                         operation: ExpectOperation::Equals,
                         value: "200".to_owned(),
                     }]),
+                    sensitive: false,
                 },
             ],
             schedule: ProbeScheduleParameters {
@@ -484,6 +488,7 @@ mod probe_logic_tests {
                     with: None,
                     http_method: "GET".to_owned(),
                     expectations: None,
+                    sensitive: false,
                 },
                 Step {
                     name: "Step 2".to_owned(),
@@ -498,6 +503,7 @@ mod probe_logic_tests {
                         operation: ExpectOperation::Equals,
                         value: "200".to_owned(),
                     }]),
+                    sensitive: false,
                 },
             ],
             schedule: ProbeScheduleParameters {

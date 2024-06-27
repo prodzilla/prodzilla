@@ -31,12 +31,17 @@ pub async fn alert_if_failure(
         return Ok(());
     }
     let error_message = error.unwrap_or("No error message");
-    let truncated_body = probe_response.map(|r| r.truncated_body(500));
+    let status_code = probe_response.map(|r| r.status_code);
+    let truncated_body = match probe_response {
+        Some(r) if !r.sensitive => Some(r.truncated_body(500)),
+        Some(_) => Some("Redacted".to_owned()),
+        None => None,
+    };
     warn!(
         "Probe {probe_name} failed at {failure_timestamp} with trace ID {}. Status code: {}. Error: {error_message}. Body: {}",
         trace_id.as_ref().unwrap_or(&"N/A".to_owned()),
-        probe_response.map_or("N/A".to_owned(), |r| r.status_code.to_string()),
-        truncated_body.unwrap_or("N/A".to_owned()),
+        status_code.map_or("N/A".to_owned(), |code| code.to_string()),
+        truncated_body.as_ref().unwrap_or(&"N/A".to_owned()),
     );
     let mut errors = Vec::new();
     if let Some(alerts_vec) = alerts {
@@ -44,7 +49,8 @@ pub async fn alert_if_failure(
             if let Err(e) = send_alert(
                 alert,
                 probe_name.to_owned(),
-                probe_response,
+                status_code,
+                truncated_body.as_deref(),
                 error_message,
                 failure_timestamp,
                 trace_id.clone(),
@@ -86,7 +92,8 @@ pub async fn send_generic_webhook(
 pub async fn send_webhook_alert(
     url: &String,
     probe_name: String,
-    probe_response: Option<&ProbeResponse>,
+    status_code: Option<u32>,
+    body: Option<&str>,
     error_message: &str,
     failure_timestamp: DateTime<Utc>,
     trace_id: Option<String>,
@@ -97,8 +104,8 @@ pub async fn send_webhook_alert(
         error_message: error_message.to_owned(),
         failure_timestamp,
         trace_id,
-        body: probe_response.map(|r| r.truncated_body(500)),
-        status_code: probe_response.map(|r| r.status_code),
+        body: body.map(|s| s.to_owned()),
+        status_code,
     };
 
     let json = serde_json::to_string(&request_body).map_to_send_err()?;
@@ -108,7 +115,8 @@ pub async fn send_webhook_alert(
 pub async fn send_slack_alert(
     webhook_url: &String,
     probe_name: String,
-    probe_response: Option<&ProbeResponse>,
+    status_code: Option<u32>,
+    body: Option<&str>,
     error_message: &str,
     failure_timestamp: DateTime<Utc>,
     trace_id: Option<String>,
@@ -133,26 +141,26 @@ pub async fn send_slack_alert(
         },
     ];
 
-    if let Some(response) = probe_response {
-        blocks.extend([
-            SlackBlock {
-                r#type: "divider".to_owned(),
-                elements: None,
-                text: None,
-            },
-            SlackBlock {
-                r#type: "section".to_owned(),
-                elements: None,
-                text: Some(SlackTextBlock {
-                    r#type: "mrkdwn".to_owned(),
-                    text: format!(
-                        "Received status code *{}* and (truncated) body:\n```\n{}\n```",
-                        response.status_code,
-                        response.body.chars().take(500).collect::<String>()
-                    ),
-                }),
-            },
-        ])
+    if let Some(code) = status_code {
+        blocks.push(SlackBlock {
+            r#type: "section".to_owned(),
+            elements: None,
+            text: Some(SlackTextBlock {
+                r#type: "mrkdwn".to_owned(),
+                text: format!("Received status code *{}*", code,),
+            }),
+        })
+    }
+
+    if let Some(s) = body {
+        blocks.push(SlackBlock {
+            r#type: "section".to_owned(),
+            elements: None,
+            text: Some(SlackTextBlock {
+                r#type: "mrkdwn".to_owned(),
+                text: format!("Received body:\n```\n{}\n```", s,),
+            }),
+        })
     }
 
     blocks.push(SlackBlock {
@@ -178,7 +186,8 @@ pub async fn send_slack_alert(
 pub async fn send_alert(
     alert: &ProbeAlert,
     probe_name: String,
-    probe_response: Option<&ProbeResponse>,
+    status_code: Option<u32>,
+    body: Option<&str>,
     error_message: &str,
     failure_timestamp: DateTime<Utc>,
     trace_id: Option<String>,
@@ -189,7 +198,8 @@ pub async fn send_alert(
             send_slack_alert(
                 &alert.url,
                 probe_name.clone(),
-                probe_response,
+                status_code,
+                body,
                 error_message,
                 failure_timestamp,
                 trace_id.clone(),
@@ -200,7 +210,8 @@ pub async fn send_alert(
             send_webhook_alert(
                 &alert.url,
                 probe_name.clone(),
-                probe_response,
+                status_code,
+                body,
                 error_message,
                 failure_timestamp,
                 trace_id.clone(),

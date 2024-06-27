@@ -4,9 +4,11 @@ use std::time::Duration;
 use crate::errors::MapToSendError;
 use chrono::Utc;
 use lazy_static::lazy_static;
-use opentelemetry::global::ObjectSafeSpan;
+use opentelemetry::KeyValue;
+use opentelemetry_semantic_conventions::trace as semconv;
 
 use opentelemetry::trace::FutureExt;
+use opentelemetry::trace::Span;
 use opentelemetry::trace::SpanId;
 use opentelemetry::trace::TraceId;
 
@@ -32,6 +34,7 @@ pub async fn call_endpoint(
     http_method: &str,
     url: &String,
     input_parameters: &Option<ProbeInputParameters>,
+    sensitive: bool,
 ) -> Result<EndpointResult, Box<dyn std::error::Error + Send>> {
     let timestamp_start = Utc::now();
     let (otel_headers, cx, span_id, trace_id) =
@@ -41,20 +44,41 @@ pub async fn call_endpoint(
     let response = request
         .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
         .send()
-        .with_context(cx)
+        .with_context(cx.clone())
         .await
         .map_to_send_err()?;
 
     let timestamp_response = Utc::now();
 
-    Ok(EndpointResult {
+    let result = EndpointResult {
         timestamp_request_started: timestamp_start,
         timestamp_response_received: timestamp_response,
         status_code: response.status().as_u16() as u32,
         body: response.text().await.map_to_send_err()?,
+        sensitive,
         trace_id: trace_id.to_string(),
         span_id: span_id.to_string(),
-    })
+    };
+    let span = cx.span();
+    span.set_attributes(vec![
+        KeyValue::new(semconv::HTTP_METHOD, http_method.to_owned()),
+        KeyValue::new(semconv::HTTP_URL, url.clone()),
+    ]);
+    span.set_attribute(KeyValue::new(
+        semconv::HTTP_STATUS_CODE,
+        result.status_code.to_string(),
+    ));
+    if !sensitive {
+        span.add_event(
+            "response",
+            vec![KeyValue::new(
+                "body",
+                result.body.chars().take(500).collect::<String>(),
+            )],
+        )
+    }
+
+    Ok(result)
 }
 
 fn get_otel_headers(span_name: String) -> (HeaderMap, Context, SpanId, TraceId) {
@@ -130,7 +154,7 @@ mod http_tests {
             format!("{}/test", mock_server.uri()),
             "".to_owned(),
         );
-        let endpoint_result = call_endpoint(&probe.http_method, &probe.url, &probe.with)
+        let endpoint_result = call_endpoint(&probe.http_method, &probe.url, &probe.with, false)
             .await
             .unwrap();
         let check_expectations_result = validate_response(
@@ -160,7 +184,8 @@ mod http_tests {
             format!("{}/test", mock_server.uri()),
             body.to_string(),
         );
-        let endpoint_result = call_endpoint(&probe.http_method, &probe.url, &probe.with).await;
+        let endpoint_result =
+            call_endpoint(&probe.http_method, &probe.url, &probe.with, false).await;
 
         assert!(endpoint_result.is_err());
     }
@@ -183,7 +208,7 @@ mod http_tests {
             format!("{}/test", mock_server.uri()),
             body.to_string(),
         );
-        let endpoint_result = call_endpoint(&probe.http_method, &probe.url, &probe.with)
+        let endpoint_result = call_endpoint(&probe.http_method, &probe.url, &probe.with, false)
             .await
             .unwrap();
         let check_expectations_result = validate_response(
@@ -220,7 +245,7 @@ mod http_tests {
             format!("{}/test", mock_server.uri()),
             request_body.to_owned(),
         );
-        let endpoint_result = call_endpoint(&probe.http_method, &probe.url, &probe.with)
+        let endpoint_result = call_endpoint(&probe.http_method, &probe.url, &probe.with, false)
             .await
             .unwrap();
         let check_expectations_result = validate_response(

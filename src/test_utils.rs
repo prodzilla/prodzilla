@@ -32,6 +32,7 @@ pub mod probe_test_utils {
                 interval: 0,
             },
             alerts: None,
+            sensitive: false,
         }
     }
 
@@ -58,9 +59,8 @@ pub mod probe_test_utils {
                 initial_delay: 0,
                 interval: 0,
             },
-            alerts: Some(vec![ProbeAlert {
-                url: alert_url,
-            }]),
+            alerts: Some(vec![ProbeAlert { url: alert_url }]),
+            sensitive: false,
         }
     }
 
@@ -94,6 +94,7 @@ pub mod probe_test_utils {
                 interval: 0,
             },
             alerts: None,
+            sensitive: false,
         }
     }
 }

@@ -76,6 +76,7 @@ A complete Probe config looks as follows:
   - name: Your Post Url
     url: https://your.site/some/path
     http_method: POST
+    sensitive: false
     with:
       headers:
         x-client-id: ClientId
@@ -162,14 +163,34 @@ The webhook looks as such:
   "probe_name": "Your Probe",
   "failure_timestamp": "2024-01-26T02:41:02.983025Z",
   "trace_id": "123456789abcdef",
-  "error_message": "Failed to meet expectation for field 'StatusCode' with operation Equals \"200\". Received: status '500', body '\"Internal Server Error\"' (truncatated to 100 characters)."
+  "error_message": "Failed to meet expectation for field 'StatusCode' with operation Equals \"200\".",
+  "status_code": 500,
+  "body": "Internal Server Error"
 }
 
 ```
 
+Response bodies are truncated to 500 characters. If a step or probe is marked as sensitive, the request body will be redacted from logs and alerts.
+
 Prodzilla will also recognize the Slack webhook domain `hooks.slack.com` and produce messages like:
 
-> Probe Your Probe failed at 2024-06-10 08:16:33.935659994 UTC. Trace ID: 123456789abcdef. Error: Failed to meet expectation for field 'StatusCode' with operation Equals "200". Received: status '500', body '"Internal Server Error"' (truncatated to 100 characters).
+> **"Your Probe" failed.**
+>
+> Error message:
+> 
+> > Failed to meet expectation for field 'StatusCode' with operation Equals "429".
+> 
+> Received status code **500**
+> 
+> Received body:
+>
+> ```
+> Internal Server Error
+> ```
+> 
+> Time: **2024-06-26 14:36:30.094126 UTC**
+> 
+> Trace ID: **e03cc9b03185db8004400049264331de**
 
 OpsGenie, and PagerDuty notification integrations are planned.
 

@@ -12,6 +12,8 @@ pub struct Probe {
     pub expectations: Option<Vec<ProbeExpectation>>,
     pub schedule: ProbeScheduleParameters,
     pub alerts: Option<Vec<ProbeAlert>>,
+    #[serde(default)] // default to false
+    pub sensitive: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -73,6 +75,7 @@ pub struct ProbeResponse {
     pub timestamp_received: DateTime<Utc>,
     pub status_code: u32,
     pub body: String,
+    pub sensitive: bool,
 }
 
 impl ProbeResponse {
@@ -96,6 +99,8 @@ pub struct Step {
     pub http_method: String,
     pub with: Option<ProbeInputParameters>,
     pub expectations: Option<Vec<ProbeExpectation>>,
+    #[serde(default)] // default to false
+    pub sensitive: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -128,6 +133,7 @@ pub struct EndpointResult {
     pub body: String,
     pub trace_id: String,
     pub span_id: String,
+    pub sensitive: bool,
 }
 
 impl EndpointResult {
@@ -136,6 +142,7 @@ impl EndpointResult {
             timestamp_received: self.timestamp_response_received,
             status_code: self.status_code,
             body: self.body.clone(),
+            sensitive: self.sensitive,
         }
     }
 }
