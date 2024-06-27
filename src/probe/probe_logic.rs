@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use opentelemetry::global;
+use opentelemetry::global::ObjectSafeSpan;
 use opentelemetry::trace;
 use opentelemetry::trace::FutureExt;
 use opentelemetry::trace::Status;
@@ -74,9 +75,10 @@ impl Monitorable for Story {
             let url = substitute_variables(&step.url, &story_variables);
             let input_parameters = substitute_input_parameters(&step.with, &story_variables);
 
-            let call_endpoint_result = call_endpoint(&step.http_method, &url, &input_parameters, step.sensitive)
-                .with_context(step_cx.clone())
-                .await;
+            let call_endpoint_result =
+                call_endpoint(&step.http_method, &url, &input_parameters, step.sensitive)
+                    .with_context(step_cx.clone())
+                    .await;
 
             match call_endpoint_result {
                 Ok(endpoint_result) => {
@@ -215,9 +217,11 @@ impl Monitorable for Probe {
 
         let root_span = global::tracer("probe_logic").start(self.name.clone());
 
-        let call_endpoint_result = call_endpoint(&self.http_method, &self.url, &self.with, self.sensitive)
-            .with_context(Context::current_with_span(root_span))
-            .await;
+        let root_cx = Context::default().with_span(root_span);
+        let call_endpoint_result =
+            call_endpoint(&self.http_method, &self.url, &self.with, self.sensitive)
+                .with_context(root_cx.clone())
+                .await;
 
         let probe_result = match call_endpoint_result {
             Ok(endpoint_result) => {
@@ -228,6 +232,10 @@ impl Monitorable for Probe {
                     endpoint_result.body,
                     &self.expectations,
                 );
+
+                if let Err(err) = expectations_result.as_ref() {
+                    root_cx.span().record_error(&err);
+                }
 
                 ProbeResult {
                     probe_name: self.name.clone(),
@@ -240,6 +248,7 @@ impl Monitorable for Probe {
             }
             Err(e) => {
                 error!("Error calling endpoint: {}", e);
+                root_cx.span().record_error(&*e);
                 ProbeResult {
                     success: false,
                     probe_name: self.name.clone(),
@@ -253,8 +262,12 @@ impl Monitorable for Probe {
 
         if probe_result.success {
             app_state.metrics.errors.add(0, &probe_attributes);
+            root_cx.span().set_status(Status::Ok);
         } else {
             app_state.metrics.errors.add(1, &probe_attributes);
+            root_cx.span().set_status(Status::Error {
+                description: "Expectation failed".into(),
+            });
         }
         let timestamp = probe_result.timestamp_started;
 
