@@ -9,6 +9,35 @@ pub mod probe_test_utils {
         ProbeScheduleParameters,
     };
 
+    pub fn probe_get_with_timeout_and_expected_status(
+        status_code: StatusCode,
+        url: String,
+        body: String,
+        timeout_seconds: Option<u64>,
+    ) -> Probe {
+        Probe {
+            name: "Test probe".to_string(),
+            url,
+            http_method: "GET".to_string(),
+            with: Some(ProbeInputParameters {
+                body: Some(body),
+                headers: Some(HashMap::new()),
+                timeout_seconds,
+            }),
+            expectations: Some(vec![ProbeExpectation {
+                field: ExpectField::StatusCode,
+                operation: ExpectOperation::Equals,
+                value: status_code.as_str().into(),
+            }]),
+            schedule: ProbeScheduleParameters {
+                initial_delay: 0,
+                interval: 0,
+            },
+            alerts: None,
+            sensitive: false,
+        }
+    }
+
     pub fn probe_get_with_expected_status(
         status_code: StatusCode,
         url: String,
@@ -21,6 +50,7 @@ pub mod probe_test_utils {
             with: Some(ProbeInputParameters {
                 body: Some(body),
                 headers: Some(HashMap::new()),
+                timeout_seconds: None,
             }),
             expectations: Some(vec![ProbeExpectation {
                 field: ExpectField::StatusCode,
@@ -49,6 +79,7 @@ pub mod probe_test_utils {
             with: Some(ProbeInputParameters {
                 body: Some(body),
                 headers: Some(HashMap::new()),
+                timeout_seconds: None,
             }),
             expectations: Some(vec![ProbeExpectation {
                 field: ExpectField::StatusCode,
@@ -76,6 +107,7 @@ pub mod probe_test_utils {
             with: Some(ProbeInputParameters {
                 body: Some(body),
                 headers: Some(HashMap::new()),
+                timeout_seconds: None,
             }),
             expectations: Some(vec![
                 ProbeExpectation {

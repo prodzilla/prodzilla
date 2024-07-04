@@ -21,7 +21,7 @@ use opentelemetry::trace::TraceContextExt;
 use opentelemetry::Context;
 use opentelemetry::{global, trace::Tracer};
 
-const REQUEST_TIMEOUT_SECS: u64 = 10;
+const DEFAULT_REQUEST_TIMEOUT_SECS: u64 = 10;
 
 lazy_static! {
     static ref CLIENT: reqwest::Client = reqwest::ClientBuilder::new()
@@ -41,8 +41,16 @@ pub async fn call_endpoint(
         get_otel_headers(format!("{} {}", http_method, url));
 
     let request = build_request(http_method, url, input_parameters, otel_headers)?;
+    let request_timeout = Duration::from_secs(input_parameters.as_ref().map_or(
+        DEFAULT_REQUEST_TIMEOUT_SECS,
+        |params| {
+            params
+                .timeout_seconds
+                .unwrap_or(DEFAULT_REQUEST_TIMEOUT_SECS)
+        },
+    ));
     let response = request
-        .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
+        .timeout(request_timeout)
         .send()
         .with_context(cx.clone())
         .await
@@ -130,7 +138,8 @@ mod http_tests {
     use crate::probe::expectations::validate_response;
     use crate::probe::http_probe::call_endpoint;
     use crate::test_utils::probe_test_utils::{
-        probe_get_with_expected_status, probe_post_with_expected_body,
+        probe_get_with_expected_status, probe_get_with_timeout_and_expected_status,
+        probe_post_with_expected_body,
     };
 
     use reqwest::StatusCode;
@@ -183,6 +192,30 @@ mod http_tests {
             StatusCode::NOT_FOUND,
             format!("{}/test", mock_server.uri()),
             body.to_string(),
+        );
+        let endpoint_result =
+            call_endpoint(&probe.http_method, &probe.url, &probe.with, false).await;
+
+        assert!(endpoint_result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_request_timeout_configuration() {
+        let mock_server = MockServer::start().await;
+
+        let body = "test body";
+
+        Mock::given(method("GET"))
+            .and(path("/five_second_response"))
+            .respond_with(ResponseTemplate::new(404).set_delay(Duration::from_secs(5)))
+            .mount(&mock_server)
+            .await;
+
+        let probe = probe_get_with_timeout_and_expected_status(
+            StatusCode::NOT_FOUND,
+            format!("{}/five_second_response", mock_server.uri()),
+            body.to_string(),
+            Some(1), // Timeout is 1 second, reduced from default of 10
         );
         let endpoint_result =
             call_endpoint(&probe.http_method, &probe.url, &probe.with, false).await;

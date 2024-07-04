@@ -40,6 +40,7 @@ pub fn substitute_input_parameters(
             .headers
             .as_ref()
             .map(|headers| substitute_variables_in_headers(headers, variables)),
+        timeout_seconds: input.timeout_seconds,
     })
 }
 
@@ -180,6 +181,7 @@ async fn test_substitute_input_parameters() {
             "Authorization".to_owned(),
             "Bearer ${{steps.get-token.response.body.token}}".to_owned(),
         )])),
+        timeout_seconds: None,
     });
 
     let result = substitute_input_parameters(&input_parameters, &variables);

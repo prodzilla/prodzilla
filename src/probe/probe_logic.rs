@@ -508,6 +508,7 @@ mod probe_logic_tests {
                     with: Some(ProbeInputParameters {
                         headers: Some(step2_headers),
                         body: Some(step2_body_str.to_owned()),
+                        timeout_seconds: None,
                     }),
                     http_method: "POST".to_owned(),
                     expectations: Some(vec![ProbeExpectation {

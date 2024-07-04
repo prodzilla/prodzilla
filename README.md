@@ -81,6 +81,7 @@ A complete Probe config looks as follows:
       headers:
         x-client-id: ClientId
       body: '"{"test": true}"'
+      timeout_seconds: 10
     expectations:
       - field: StatusCode
         operation: Equals 

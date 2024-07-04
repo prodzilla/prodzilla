@@ -21,6 +21,7 @@ pub struct ProbeInputParameters {
     #[serde(default)]
     pub headers: Option<HashMap<String, String>>,
     pub body: Option<String>,
+    pub timeout_seconds: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
