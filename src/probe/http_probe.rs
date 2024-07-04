@@ -41,14 +41,12 @@ pub async fn call_endpoint(
         get_otel_headers(format!("{} {}", http_method, url));
 
     let request = build_request(http_method, url, input_parameters, otel_headers)?;
-    let request_timeout = Duration::from_secs(input_parameters.as_ref().map_or(
-        DEFAULT_REQUEST_TIMEOUT_SECS,
-        |params| {
-            params
-                .timeout_seconds
-                .unwrap_or(DEFAULT_REQUEST_TIMEOUT_SECS)
-        },
-    ));
+    let request_timeout = Duration::from_secs(
+        input_parameters
+            .as_ref()
+            .and_then(|params| params.timeout_seconds)
+            .unwrap_or(DEFAULT_REQUEST_TIMEOUT_SECS),
+    );
     let response = request
         .timeout(request_timeout)
         .send()
