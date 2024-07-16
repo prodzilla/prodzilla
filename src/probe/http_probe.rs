@@ -4,7 +4,6 @@ use std::time::Duration;
 use crate::errors::MapToSendError;
 use chrono::Utc;
 use lazy_static::lazy_static;
-use opentelemetry::trace::Span;
 use opentelemetry_sdk::propagation::TraceContextPropagator;
 use opentelemetry_sdk::trace::TracerProvider;
 use reqwest::header::HeaderMap;
@@ -16,13 +15,13 @@ use opentelemetry::trace::TraceContextExt;
 use opentelemetry::Context;
 use opentelemetry::{global, trace::Tracer};
 
-const REQUEST_TIMEOUT_SECS: u64 = 10;
+const REQUEST_TIMEOUT_SECS: u64 = 30;
 
 lazy_static! {
     static ref CLIENT: reqwest::Client = reqwest::ClientBuilder::new()
         .user_agent("Prodzilla Probe/1.0")
         .build()
-        .unwrap();
+        .expect("Failed to build reqwest client");
 }
 
 pub async fn call_endpoint(
@@ -33,14 +32,14 @@ pub async fn call_endpoint(
     let timestamp_start = Utc::now();
     let (otel_headers, trace_id) = get_otel_headers();
 
-    let request = build_request(http_method, url, input_parameters, otel_headers)?;
-    let response = request
+    let request: RequestBuilder = build_request(http_method, url, input_parameters, otel_headers)?;
+    let response: reqwest::Response = request
         .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
         .send()
         .await
         .map_to_send_err()?;
 
-    let timestamp_response = Utc::now();
+    let timestamp_response: chrono::prelude::DateTime<Utc> = Utc::now();
 
     return Ok(EndpointResult {
         timestamp_request_started: timestamp_start,
@@ -53,11 +52,11 @@ pub async fn call_endpoint(
 
 fn get_otel_headers() -> (HeaderMap, String) {
     
-    let tracer = global::tracer("prodzilla_tracer");
-    let span = tracer.start("prodzilla_call");
-    let cx = Context::current_with_span(span);
+    let tracer: global::BoxedTracer = global::tracer("prodzilla_tracer");
+    let span: global::BoxedSpan = tracer.start("prodzilla_call");
+    let cx: Context = Context::current_with_span(span);
 
-    let mut headers = HeaderMap::new();
+    let mut headers: HeaderMap = HeaderMap::new();
     global::get_text_map_propagator(|propagator| {
         propagator.inject_context(&cx, &mut opentelemetry_http::HeaderInjector(&mut headers));
     });
@@ -69,7 +68,7 @@ fn get_otel_headers() -> (HeaderMap, String) {
 
 // Needs to be called to enable trace ids
 pub fn init_otel_tracing() {
-    let provider = TracerProvider::default();
+    let provider: TracerProvider = TracerProvider::default();
     global::set_tracer_provider(provider);
     global::set_text_map_propagator(TraceContextPropagator::new());
 }
@@ -80,9 +79,9 @@ fn build_request(
     input_parameters: &Option<ProbeInputParameters>,
     otel_headers: HeaderMap
 ) -> Result<RequestBuilder, Box<dyn std::error::Error + Send>> {
-    let method = reqwest::Method::from_str(http_method).map_to_send_err()?;
+    let method: reqwest::Method = reqwest::Method::from_str(http_method).map_to_send_err()?;
 
-    let mut request = CLIENT.request(method, url);
+    let mut request: RequestBuilder = CLIENT.request(method, url);
     request = request.headers(otel_headers);
 
     if let Some(probe_input_parameters) = input_parameters {
@@ -111,14 +110,14 @@ mod http_tests {
     };
 
     use reqwest::StatusCode;
-    use wiremock::matchers::{body_string, header_exists, header_regex, method, path};
+    use wiremock::matchers::{body_string, header_exists, method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     // Note: These tests are a bit odd because they have been updated since a refactor
 
     #[tokio::test]
     async fn test_requests_get_200() {
-        let mock_server = MockServer::start().await;
+        let mock_server: MockServer = MockServer::start().await;
 
         Mock::given(method("GET"))
             .and(path("/test"))
@@ -142,9 +141,9 @@ mod http_tests {
 
     #[tokio::test]
     async fn test_requests_get_timeout() {
-        let mock_server = MockServer::start().await;
+        let mock_server: MockServer = MockServer::start().await;
 
-        let body = "test body";
+        let body: &str = "test body";
 
         Mock::given(method("GET"))
             .and(path("/test"))
@@ -152,7 +151,7 @@ mod http_tests {
             .mount(&mock_server)
             .await;
 
-        let probe = probe_get_with_expected_status(
+        let probe: crate::probe::model::Probe = probe_get_with_expected_status(
             StatusCode::NOT_FOUND,
             format!("{}/test", mock_server.uri()),
             body.to_string(),

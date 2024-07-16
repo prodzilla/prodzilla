@@ -279,6 +279,7 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
     - UI output of results for all probes
 - Forwarding alerts
     - Webhooks :white_check_mark:
+    - Discord webhooks :white_check_mark:
     - Slack :bricks:
     - Email
     - Splunk / OpsGenie / PagerDuty / slack integrations?

@@ -1,40 +1,147 @@
 probes:
-  - name: your-post
-    url:	https://your.site/some/path
-    http_method: POST
-    with:
-      headers:
-        x-client-id: ClientId
-      body: '"{"test": true}"'
+  - name: api-core-health
+    url:	https://api.xylex.ai/systems/health/main
+    http_method: GET
     expectations:
       - field: StatusCode
         operation: Equals 
         value: "200"
     schedule:
       initial_delay: 0
-      interval: 60
+      interval: 15
     alerts:
-      - url: https://notify.me/some/path
+      - url: https://discord.com/api/webhooks/1262877118573052018/C9TRgwPFlj5swDaHmH5LUhQqryUYkJMRZdzSnrlLGkqVYr9XDPSL1R03EKpYwtP5YURE
 
-stories:
-  - name: get-ip-user-flow
-    steps:
-      - name: get-ip
-        url: https://api.ipify.org/?format=json
-        http_method: GET
-        expectations:
-          - field: StatusCode
-            operation: Equals 
-            value: "200"
-      - name: get-location
-        url: https://ipinfo.io/${{ steps.get-ip.body.ip }}/geo
-        http_method: GET
-        expectations:
-          - field: StatusCode
-            operation: Equals 
-            value: "200"
+
+  - name: api-discord-health
+    url:	https://api.xylex.ai/internals/xylex_discord/ping
+    http_method: GET
+    expectations:
+      - field: StatusCode
+        operation: Equals 
+        value: "200"
     schedule:
       initial_delay: 0
-      interval: 20
+      interval: 15
     alerts:
-      - url: https://webhook.site/54a9a526-c104-42a7-9b76-788e897390d8 
+      - url: https://discord.com/api/webhooks/1262877118573052018/C9TRgwPFlj5swDaHmH5LUhQqryUYkJMRZdzSnrlLGkqVYr9XDPSL1R03EKpYwtP5YURE
+
+  - name: api-deamon-algo-states-endpoint
+    url:	https://api.xylex.ai/internals/xylex_core/algo_state
+    http_method: GET
+    expectations:
+      - field: StatusCode
+        operation: Equals 
+        value: "200"
+    schedule:
+      initial_delay: 0
+      interval: 15
+    alerts:
+      - url: https://discord.com/api/webhooks/1262877118573052018/C9TRgwPFlj5swDaHmH5LUhQqryUYkJMRZdzSnrlLGkqVYr9XDPSL1R03EKpYwtP5YURE
+
+  - name: api-core-econ-events-endpoint
+    url:	https://api.xylex.ai/internals/econ_events/tomorrow
+    http_method: GET
+    expectations:
+      - field: StatusCode
+        operation: Equals 
+        value: "200"
+    schedule:
+      initial_delay: 0
+      interval: 15
+    alerts:
+      - url: https://discord.com/api/webhooks/1262877118573052018/C9TRgwPFlj5swDaHmH5LUhQqryUYkJMRZdzSnrlLGkqVYr9XDPSL1R03EKpYwtP5YURE
+
+  - name: api-core-realtime-price-endpoint
+    url:	https://api.xylex.ai/data/realtime/price?symbol=eurusd&api_key=123
+    http_method: GET
+    expectations:
+      - field: StatusCode
+        operation: Equals 
+        value: "200"
+    schedule:
+      initial_delay: 0
+      interval: 15
+    alerts:
+      - url: https://discord.com/api/webhooks/1262877118573052018/C9TRgwPFlj5swDaHmH5LUhQqryUYkJMRZdzSnrlLGkqVYr9XDPSL1R03EKpYwtP5YURE
+
+  - name: api-core-realtime-time-series-endpoint
+    url:	https://api.xylex.ai/data/time_series?symbol=eurusd&interval=1min&outputsize=1&api_key=123
+    http_method: GET
+    expectations:
+      - field: StatusCode
+        operation: Equals 
+        value: "200"
+    schedule:
+      initial_delay: 0
+      interval: 15
+    alerts:
+      - url: https://discord.com/api/webhooks/1262877118573052018/C9TRgwPFlj5swDaHmH5LUhQqryUYkJMRZdzSnrlLGkqVYr9XDPSL1R03EKpYwtP5YURE
+
+  - name: api-core-pending-trades-update-endpoint
+    url:	https://api.xylex.ai/internals/pending_trades/update
+    http_method: GET
+    expectations:
+      - field: StatusCode
+        operation: Equals 
+        value: "200"
+    schedule:
+      initial_delay: 0
+      interval: 15
+    alerts:
+      - url: https://discord.com/api/webhooks/1262877118573052018/C9TRgwPFlj5swDaHmH5LUhQqryUYkJMRZdzSnrlLGkqVYr9XDPSL1R03EKpYwtP5YURE
+
+  - name: api-core-pending-trades-formatted-endpoint
+    url:	https://api.xylex.ai/internals/pending_formatted/trades/all_algorithm_ids
+    http_method: GET
+    expectations:
+      - field: StatusCode
+        operation: Equals 
+        value: "200"
+    schedule:
+      initial_delay: 0
+      interval: 15
+    alerts:
+      - url: https://discord.com/api/webhooks/1262877118573052018/C9TRgwPFlj5swDaHmH5LUhQqryUYkJMRZdzSnrlLGkqVYr9XDPSL1R03EKpYwtP5YURE
+
+  - name: api-charts-generate
+    url:	https://api.xylex.ai/charts/generate?trade_hash=xlx-t-ad60f9e137452da4d675523f0901afbe&org=tbr
+    http_method: GET
+    expectations:
+      - field: StatusCode
+        operation: Equals 
+        value: "200"
+    schedule:
+      initial_delay: 0
+      interval: 15
+    alerts:
+      - url: https://discord.com/api/webhooks/1262877118573052018/C9TRgwPFlj5swDaHmH5LUhQqryUYkJMRZdzSnrlLGkqVYr9XDPSL1R03EKpYwtP5YURE
+
+
+  - name: api-core-oath2-token-endpoint
+    url:	https://api.xylex.ai/oath2/v2/request_token
+    http_method: GET
+    expectations:
+      - field: StatusCode
+        operation: Equals 
+        value: "200"
+    schedule:
+      initial_delay: 0
+      interval: 15
+    alerts:
+      - url: https://discord.com/api/webhooks/1262877118573052018/C9TRgwPFlj5swDaHmH5LUhQqryUYkJMRZdzSnrlLGkqVYr9XDPSL1R03EKpYwtP5YURE
+
+
+  - name: api-core-oath2-token-elite_strategy-endpoint
+    url:	https://api.xylex.ai/oath2/v2/request_token_elite_strategy
+    http_method: GET
+    expectations:
+      - field: StatusCode
+        operation: Equals 
+        value: "200"
+    schedule:
+      initial_delay: 0
+      interval: 15
+    alerts:
+      - url: https://discord.com/api/webhooks/1262877118573052018/C9TRgwPFlj5swDaHmH5LUhQqryUYkJMRZdzSnrlLGkqVYr9XDPSL1R03EKpYwtP5YURE
+
