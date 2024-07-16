@@ -1,40 +1,27 @@
 probes:
-  - name: your-post
-    url:	https://your.site/some/path
-    http_method: POST
-    with:
-      headers:
-        x-client-id: ClientId
-      body: '"{"test": true}"'
+  - name: api-core-health
+    url:	https://api.xylex.ai/systems/health/main
+    http_method: GET
     expectations:
       - field: StatusCode
         operation: Equals 
         value: "200"
     schedule:
       initial_delay: 0
-      interval: 60
+      interval: 15
     alerts:
-      - url: https://notify.me/some/path
+      - url: https://discord.com/api/webhooks/1262877118573052018/C9TRgwPFlj5swDaHmH5LUhQqryUYkJMRZdzSnrlLGkqVYr9XDPSL1R03EKpYwtP5YURE
 
-stories:
-  - name: get-ip-user-flow
-    steps:
-      - name: get-ip
-        url: https://api.ipify.org/?format=json
-        http_method: GET
-        expectations:
-          - field: StatusCode
-            operation: Equals 
-            value: "200"
-      - name: get-location
-        url: https://ipinfo.io/${{ steps.get-ip.body.ip }}/geo
-        http_method: GET
-        expectations:
-          - field: StatusCode
-            operation: Equals 
-            value: "200"
+
+  - name: api-discord-health
+    url:	https://api.xylex.ai/internals/xylex_discord/ping
+    http_method: GET
+    expectations:
+      - field: StatusCode
+        operation: Equals 
+        value: "200"
     schedule:
       initial_delay: 0
-      interval: 20
+      interval: 15
     alerts:
-      - url: https://webhook.site/54a9a526-c104-42a7-9b76-788e897390d8 
+      - url: https://discord.com/api/webhooks/1262877118573052018/C9TRgwPFlj5swDaHmH5LUhQqryUYkJMRZdzSnrlLGkqVYr9XDPSL1R03EKpYwtP5YURE

@@ -282,6 +282,7 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
     - Slack :bricks:
     - Email
     - Splunk / OpsGenie / PagerDuty / slack integrations?
+    - Discord webhook :bricks:
 - Complex Tests
     - Retries
     - Chained queries :white_check_mark:
