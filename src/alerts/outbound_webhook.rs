@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use lazy_static::lazy_static;
-use reqwest::{Client, ClientBuilder, RequestBuilder};
+use reqwest::{Client, ClientBuilder};
 use std::error::Error;
 use std::time::Duration;
 use tracing::{error, info};
@@ -20,6 +20,8 @@ lazy_static! {
         .build()
         .expect("Failed to build reqwest client");
 }
+
+
 
 pub async fn alert_if_failure(
     success: bool,
@@ -45,50 +47,52 @@ pub async fn send_alert(
     probe_name: String,
     failure_timestamp: DateTime<Utc>,
 ) -> Result<(), Box<dyn Error + Send>> {
-    // When we have other alert types, add them in some kind of switch here
-
     let route_provider: String = alert_router(alert).await?;
-    let status_code: u16;
 
-    if route_provider == "any" {
-        let mut request: RequestBuilder = CLIENT.post(&alert.url);
+    let status_code = match route_provider.as_str() {
+        "any" => send_generic_alert(alert, &probe_name, failure_timestamp).await?,
+        "discord" => send_alert_discord(alert, probe_name.clone(), failure_timestamp).await?,
+        _ => {
+            error!("Unknown route provider: {}", route_provider);
+            return Ok(());
+        }
+    };
 
-        let request_body: WebhookNotification = WebhookNotification {
-            message: "Probe failed.".to_owned(),
-            probe_name: probe_name.clone(),
-            failure_timestamp,
-        };
-
-        let json: String = serde_json::to_string(&request_body).map_to_send_err()?;
-        request = request.body(json);
-
-        let alert_response = request
-            .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
-            .send()
-            .await
-            .map_to_send_err()?;
-
-        status_code = alert_response.status().as_u16();
-    } else if route_provider == "discord" {
-        status_code = send_alert_discord(alert, probe_name.clone(), failure_timestamp).await?;
-    } else {
-        error!("Unknown route provider: {}", route_provider);
-        return Ok(());
-    }
-
-    if status_code != 200 && status_code != 204 {
-        error!(
-            "Failed to send webhook alert. Response status code {}",
-            status_code
-        );
-    } else {
-        info!(
-            "Sent webhook alert. Response status code {}",
-            status_code
-        );
-    }
-
+    log_alert_status(status_code);
     Ok(())
+}
+
+
+async fn send_generic_alert(
+    alert: &ProbeAlert,
+    probe_name: &str,
+    failure_timestamp: DateTime<Utc>,
+) -> Result<u16, Box<dyn Error + Send>> {
+    let request_body: WebhookNotification = WebhookNotification {
+        message: "Probe failed.".to_owned(),
+        probe_name: probe_name.to_owned(),
+        failure_timestamp,
+    };
+
+    let json: String = serde_json::to_string(&request_body).map_to_send_err()?;
+    let alert_response = CLIENT
+        .post(&alert.url)
+        .body(json)
+        .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
+        .send()
+        .await
+        .map_to_send_err()?;
+
+    Ok(alert_response.status().as_u16())
+}
+
+// discord success webhooks can return 204 so we need to log that as well
+fn log_alert_status(status_code: u16) {
+    if status_code != 200 && status_code != 204 {
+        error!("Failed to send webhook alert. Response status code {}", status_code);
+    } else {
+        info!("Sent webhook alert. Response status code {}", status_code);
+    }
 }
 
 #[cfg(test)]
