@@ -10,7 +10,7 @@ use tracing::{error, info};
 use crate::errors::MapToSendError;
 use crate::probe::model::ProbeAlert;
 
-const REQUEST_TIMEOUT_SECS: u64 = 10;
+const REQUEST_TIMEOUT_SECS: u64 = 30;
 const CONTENT_TYPE: &str = "application/json";
 
 lazy_static! {

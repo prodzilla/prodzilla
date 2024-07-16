@@ -12,7 +12,7 @@ use crate::alerts::model::WebhookNotification;
 use crate::errors::MapToSendError;
 use crate::probe::model::ProbeAlert;
 
-const REQUEST_TIMEOUT_SECS: u64 = 10;
+const REQUEST_TIMEOUT_SECS: u64 = 30;
 
 lazy_static! {
     static ref CLIENT: Client = ClientBuilder::new()

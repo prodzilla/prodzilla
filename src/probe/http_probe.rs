@@ -15,7 +15,7 @@ use opentelemetry::trace::TraceContextExt;
 use opentelemetry::Context;
 use opentelemetry::{global, trace::Tracer};
 
-const REQUEST_TIMEOUT_SECS: u64 = 10;
+const REQUEST_TIMEOUT_SECS: u64 = 30;
 
 lazy_static! {
     static ref CLIENT: reqwest::Client = reqwest::ClientBuilder::new()
