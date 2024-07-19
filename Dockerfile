@@ -2,17 +2,18 @@
 
 ARG RUST_VERSION=1.78
 
-FROM --platform=$BUILDPLATFORM rust:${RUST_VERSION}-alpine AS build
+FROM --platform=$BUILDPLATFORM rust:${RUST_VERSION}-slim-bookworm AS build
 
 WORKDIR /app
 
-RUN apk add --no-cache musl-dev perl make
+RUN apt-get update -y && apt-get install -y libssl-dev pkg-config
 
 COPY . .
 RUN cargo build --locked --release --target-dir target && cp ./target/release/prodzilla /bin/prodzilla
 
-FROM alpine:3.18 AS final
+FROM debian:bookworm-slim AS final
 
+RUN apt-get update && apt-get install -y libssl-dev ca-certificates
 # Create a non-privileged user that the app will run under.
 # See https://docs.docker.com/go/dockerfile-user-best-practices/
 ARG UID=10001
@@ -25,6 +26,7 @@ RUN adduser \
     --uid "${UID}" \
     appuser
 USER appuser
+
 
 # Copy the executable from the "build" stage.
 COPY --from=build /bin/prodzilla /bin/
