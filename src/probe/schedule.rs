@@ -50,14 +50,12 @@ pub async fn probing_loop<T: Monitorable>(monitorable: &T, app_state: Arc<AppSta
     }
 }
 
-
-
 #[cfg(test)]
 mod schedule_tests {
 
     use crate::config::Config;
     use crate::probe::schedule::schedule_probes;
-    use crate::test_utils::test_utils::{
+    use crate::test_utils::probe_test_utils::{
         probe_get_with_expected_status, probe_get_with_expected_status_and_alert,
     };
     use crate::AppState;
@@ -98,9 +96,9 @@ mod schedule_tests {
             format!("{}{}", mock_server.uri(), alert_url.to_owned()),
         );
 
-        let config = Config{
+        let config = Config {
             probes: vec![probe],
-            stories: vec![]
+            stories: vec![],
         };
 
         let app_state = Arc::new(AppState::new(config));
@@ -133,9 +131,9 @@ mod schedule_tests {
             "".to_owned(),
         );
 
-        let config = Config{
+        let config = Config {
             probes: vec![probe],
-            stories: vec![]
+            stories: vec![],
         };
 
         let app_state = Arc::new(AppState::new(config));

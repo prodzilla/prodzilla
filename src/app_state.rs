@@ -1,6 +1,10 @@
-use std::{sync::RwLock, collections::HashMap};
+use std::{collections::HashMap, sync::RwLock};
 
-use crate::{config::Config, probe::model::{ProbeResult, StoryResult}};
+use crate::{
+    config::Config,
+    otel::metrics::Metrics,
+    probe::model::{ProbeResult, StoryResult},
+};
 
 // Limits the number of results we store per probe. Once we go over this amount we remove the earliest.
 const PROBE_RESULT_LIMIT: usize = 100;
@@ -8,23 +12,24 @@ const PROBE_RESULT_LIMIT: usize = 100;
 pub struct AppState {
     pub probe_results: RwLock<HashMap<String, Vec<ProbeResult>>>,
     pub story_results: RwLock<HashMap<String, Vec<StoryResult>>>,
-    pub config: Config
+    pub config: Config,
+    pub metrics: Metrics,
 }
 
 impl AppState {
-    
     pub fn new(config: Config) -> AppState {
-        return AppState {
+        AppState {
             probe_results: RwLock::new(HashMap::new()),
             story_results: RwLock::new(HashMap::new()),
-            config: config
-        };
+            config,
+            metrics: Metrics::new(),
+        }
     }
 
     pub fn add_probe_result(&self, probe_name: String, result: ProbeResult) {
         let mut write_lock = self.probe_results.write().unwrap();
 
-        let results = write_lock.entry(probe_name).or_insert_with(Vec::new);
+        let results = write_lock.entry(probe_name).or_default();
         results.push(result);
 
         // Ensure only the latest 100 elements are kept
@@ -36,7 +41,7 @@ impl AppState {
     pub fn add_story_result(&self, story_name: String, result: StoryResult) {
         let mut write_lock = self.story_results.write().unwrap();
 
-        let results = write_lock.entry(story_name).or_insert_with(Vec::new);
+        let results = write_lock.entry(story_name).or_default();
         results.push(result);
 
         // Ensure only the latest 100 elements are kept

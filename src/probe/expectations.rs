@@ -1,28 +1,28 @@
+use crate::errors::ExpectationFailedError;
 use crate::probe::model::ExpectField;
 use crate::probe::model::ExpectOperation;
 use crate::probe::model::ProbeExpectation;
+use regex::Regex;
 use tracing::debug;
-
-use super::model::EndpointResult;
 
 pub fn validate_response(
     step_name: &String,
-    endpoint_result: &EndpointResult, 
+    status_code: u32,
+    body: String,
     expectations: &Option<Vec<ProbeExpectation>>,
-) -> bool {
-
+) -> Result<(), ExpectationFailedError> {
     match expectations {
-        Some(expect_back) => {
-            let validation_result = validate_response_internal(&expect_back, endpoint_result.status_code, &endpoint_result.body);
-            if validation_result {
+        Some(expect_back) => match validate_response_internal(expect_back, status_code, body) {
+            Ok(_) => {
                 debug!("Successful response for {}, as expected", step_name);
-            } else {
-                debug!("Successful response for {}, not as expected!", step_name);
+                Ok(())
             }
-            return validation_result;
-        }
+            Err(e) => {
+                debug!("Successful response for {}, not as expected!", step_name);
+                Err(e)
+            }
+        },
         None => {
-
             // TODO:
             // If we don't have any expectations, default to checking status is 200
 
@@ -30,7 +30,7 @@ pub fn validate_response(
                 "Successfully probed {}, no expectation so success is true",
                 step_name
             );
-            return true;
+            Ok(())
         }
     }
 }
@@ -38,105 +38,114 @@ pub fn validate_response(
 pub fn validate_response_internal(
     expect: &Vec<ProbeExpectation>,
     status_code: u32,
-    body: &String,
-) -> bool {
-    let status_string = status_code.to_string();
-
+    body: String,
+) -> Result<(), ExpectationFailedError> {
     for expectation in expect {
-        let expectation_result: bool;
-        match expectation.field {
-            ExpectField::Body => {
-                expectation_result =
-                    validate_expectation(&expectation.operation, &expectation.value, &body);
-            }
-            ExpectField::StatusCode => {
-                expectation_result = validate_expectation(
-                    &expectation.operation,
-                    &expectation.value,
-                    &status_string,
-                );
-            }
-        }
-
-        if !expectation_result {
-            return false;
-        }
+        validate_expectation(expectation, status_code, &body)?;
     }
 
-    return true;
+    Ok(())
+}
+
+fn expectation_met(operation: &ExpectOperation, expected: &String, received: &String) -> bool {
+    match operation {
+        ExpectOperation::Equals => expected == received,
+        ExpectOperation::Contains => received.contains(expected),
+        ExpectOperation::IsOneOf => expected.split('|').any(|part| part == received),
+        // TODO: This regex could probably be pre-compiled?
+        ExpectOperation::Matches => Regex::new(expected).unwrap().is_match(received),
+    }
 }
 
 fn validate_expectation(
-    operation: &ExpectOperation,
-    expected_value: &String,
-    value: &String,
-) -> bool {
-    match operation {
-        ExpectOperation::Equals => {
-            return value == expected_value;
-        }
-        ExpectOperation::Contains => {
-            return value.contains(expected_value);
-        }
-        ExpectOperation::IsOneOf => {
-            let parts = expected_value.split("|");
-            for part in parts {
-                if value == part {
-                    return true;
-                }
-            }
-            return false;
-        }
+    expect: &ProbeExpectation,
+    status_code: u32,
+    body: &String,
+) -> Result<(), ExpectationFailedError> {
+    let expected_value = &expect.value;
+    let status_string = status_code.to_string();
+    let received_value = match expect.field {
+        ExpectField::Body => body,
+        ExpectField::StatusCode => &status_string,
+    };
+    let success = expectation_met(&expect.operation, expected_value, received_value);
+    if success {
+        Ok(())
+    } else {
+        Err(ExpectationFailedError {
+            expected: expect.value.clone(),
+            body: body.clone(),
+            operation: expect.operation.clone(),
+            field: expect.field.clone(),
+            status_code,
+        })
     }
 }
 
 #[tokio::test]
 async fn test_validate_expectations_equals() {
-    let success_result = validate_expectation(
+    let success_result = expectation_met(
         &ExpectOperation::Equals,
         &"Test".to_owned(),
         &"Test".to_owned(),
     );
-    assert_eq!(success_result, true);
+    assert!(success_result);
 
-    let fail_result = validate_expectation(
+    let fail_result = expectation_met(
         &ExpectOperation::Equals,
         &"Test123".to_owned(),
         &"Test".to_owned(),
     );
-    assert_eq!(fail_result, false);
+    assert!(!fail_result);
 }
 
 #[tokio::test]
 async fn test_validate_expectations_contains() {
-    let success_result = validate_expectation(
+    let success_result = expectation_met(
         &ExpectOperation::Contains,
         &"Test".to_owned(),
         &"Test123".to_owned(),
     );
-    assert_eq!(success_result, true);
+    assert!(success_result);
 
-    let fail_result = validate_expectation(
+    let fail_result = expectation_met(
         &ExpectOperation::Contains,
         &"Test123".to_owned(),
         &"Test".to_owned(),
     );
-    assert_eq!(fail_result, false);
+    assert!(!fail_result);
 }
 
 #[tokio::test]
 async fn test_validate_expectations_isoneof() {
-    let success_result = validate_expectation(
+    let success_result = expectation_met(
         &ExpectOperation::IsOneOf,
         &"Test|Yes|No".to_owned(),
         &"Test".to_owned(),
     );
-    assert_eq!(success_result, true);
+    assert!(success_result);
 
-    let fail_result = validate_expectation(
+    let fail_result = expectation_met(
         &ExpectOperation::IsOneOf,
         &"Test|Yes|No".to_owned(),
         &"Yest".to_owned(),
     );
-    assert_eq!(fail_result, false);
+    assert!(!fail_result);
+}
+
+#[tokio::test]
+async fn test_validate_expectations_matches() {
+    let success_result = expectation_met(
+        &ExpectOperation::Matches,
+        &r#"^\d{5}$"#.to_owned(),
+        &"12345".to_owned(),
+    );
+    assert!(success_result);
+
+    let fail_result = expectation_met(
+        &ExpectOperation::Matches,
+        &r#"^\d{5}$"#.to_owned(),
+        &"1234".to_owned(),
+    );
+    assert!(!fail_result);
 }

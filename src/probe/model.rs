@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -11,6 +12,8 @@ pub struct Probe {
     pub expectations: Option<Vec<ProbeExpectation>>,
     pub schedule: ProbeScheduleParameters,
     pub alerts: Option<Vec<ProbeAlert>>,
+    #[serde(default)] // default to false
+    pub sensitive: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -18,6 +21,7 @@ pub struct ProbeInputParameters {
     #[serde(default)]
     pub headers: Option<HashMap<String, String>>,
     pub body: Option<String>,
+    pub timeout_seconds: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,6 +36,7 @@ pub enum ExpectOperation {
     Equals,
     IsOneOf,
     Contains,
+    Matches,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -57,6 +62,8 @@ pub struct ProbeResult {
     pub timestamp_started: DateTime<Utc>,
     pub success: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub error_message: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub response: Option<ProbeResponse>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trace_id: Option<String>,
@@ -69,8 +76,14 @@ pub struct ProbeResponse {
     pub timestamp_received: DateTime<Utc>,
     pub status_code: u32,
     pub body: String,
+    pub sensitive: bool,
 }
 
+impl ProbeResponse {
+    pub fn truncated_body(&self, n: usize) -> String {
+        self.body.chars().take(n).collect()
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Story {
@@ -87,6 +100,8 @@ pub struct Step {
     pub http_method: String,
     pub with: Option<ProbeInputParameters>,
     pub expectations: Option<Vec<ProbeExpectation>>,
+    #[serde(default)] // default to false
+    pub sensitive: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -103,9 +118,13 @@ pub struct StepResult {
     pub timestamp_started: DateTime<Utc>,
     pub success: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub error_message: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub response: Option<ProbeResponse>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub trace_id: Option<String>
+    pub trace_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub span_id: Option<String>,
 }
 
 pub struct EndpointResult {
@@ -114,14 +133,17 @@ pub struct EndpointResult {
     pub status_code: u32,
     pub body: String,
     pub trace_id: String,
+    pub span_id: String,
+    pub sensitive: bool,
 }
 
 impl EndpointResult {
     pub fn to_probe_response(&self) -> ProbeResponse {
-        return ProbeResponse {
+        ProbeResponse {
             timestamp_received: self.timestamp_response_received,
             status_code: self.status_code,
             body: self.body.clone(),
+            sensitive: self.sensitive,
         }
     }
 }
