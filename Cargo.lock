@@ -1382,7 +1382,7 @@ dependencies = [
 
 [[package]]
 name = "prodzilla"
-version = "0.0.3-rc.5"
+version = "0.0.3"
 dependencies = [
  "axum 0.7.5",
  "chrono",
