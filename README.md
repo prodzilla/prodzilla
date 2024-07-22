@@ -368,7 +368,7 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
     - In a Database
 - Output
     - JSON output of results for all probes :white_check_mark:
-    - Prometheus Endpoint
+    - Prometheus Endpoint :white_check_mark:
     - UI output of results for all probes
 - Forwarding alerts
     - Webhooks :white_check_mark:
