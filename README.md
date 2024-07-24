@@ -286,7 +286,7 @@ It also outputs structured logs to standard out.
 Prodzilla tracks the following metrics:
 
 | Name | Type | Description |
-| ---- | ---- | ----------- ||
+| ---- | ---- | ----------- |
 | runs     | Counter(u64)   | The total number of executions for this test |
 | duration | Histogram(u64) | Time taken to execute the test               |
 | errors   | Counter(u64)   | The total number of errors for this test     |
