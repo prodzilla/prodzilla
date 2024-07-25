@@ -1,0 +1,20 @@
+on:
+  push:
+
+name: Lint
+
+jobs:
+  clippy:
+    runs-on: ubuntu-latest
+    name: Clippy
+    steps:
+      - uses: actions/checkout@v4
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features
+  fmt:
+    name: Fmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fmt
+        run: cargo fmt --all -- --check
