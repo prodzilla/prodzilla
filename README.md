@@ -31,6 +31,7 @@ To be part of the community, or for any questions, join our [Discord](https://di
     - [Tracked metrics](#tracked-metrics)
     - [Traces](#traces)
     - [Configuring OpenTelemetry export](#configuring-opentelemetry-export)
+      - [Prometheus](#prometheus)
     - [Configuring log level](#configuring-log-level)
 - [Deploying on Shuttle for Free](#deploying-on-shuttle-for-free)
 - [Feature Roadmap](#feature-roadmap)
@@ -309,10 +310,19 @@ Configuration follows the OpenTelemetry standard environment variables:
 - `OTEL_EXPORTER_OTLP_ENDPOINT` is used to define the collector endpoint. Defaults to `http://localhost:431`
 - `OTEL_EXPORTER_OTLP_PROTOCOL` is used to define the protocol that is used in export. Supported values are `http/protobuf`, `http/json` and `grpc`. Defaults to `grpc`.
 - `OTEL_EXPORTER_OTLP_TIMEOUT` is used to set an exporter timeout in seconds. Defaults to 10 seconds.
-- `OTEL_METRICS_EXPORTER` is used to define how metrics are exported. Supported values are `otlp` and `stdout`. If unset, metrics will not be exported.
+- `OTEL_METRICS_EXPORTER` is used to define how metrics are exported. Supported values are `otlp`, `stdout` and `prometheus`. If unset, metrics will not be exported.
 - `OTEL_TRACES_EXPORTER` is used to define how traces are exported. Supported values are `otlp` and `stdout`. If unset, traces will not exported.
 
 Furthermore, resource attributes can be set with `OTEL_RESOURCE_ATTRIBUTES`.
+
+#### Prometheus
+Prodzilla is also able to export the same metrics as a Prometheus endpoint. This is configured with the environment variables:
+
+- `OTEL_METRICS_EXPORTER` must be set to `prometheus`
+- `OTEL_EXPORTER_PROMETHEUS_HOST` is used to set the host to listen to. Defaults to `localhost`.
+- `OTEL_EXPORTER_PROMETHEUS_PORT` is used to set the port to listen to. Defaults to `9464`.
+
+Metrics are served at `/metrics` in the plain-text Prometheus format.
 
 ### Configuring log level
 The logging level can be set using the environment variable `RUST_LOG`. Supported levels are `trace`, `debug`, `info`, `warn`, and `error` in ascending order of severity.
@@ -358,7 +368,7 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
     - In a Database
 - Output
     - JSON output of results for all probes :white_check_mark:
-    - Prometheus Endpoint
+    - Prometheus Endpoint :white_check_mark:
     - UI output of results for all probes
 - Forwarding alerts
     - Webhooks :white_check_mark:

@@ -1,8 +1,8 @@
 use std::{env, time::Duration};
 
+use metrics::MetricsState;
 use opentelemetry_otlp::{ExportConfig, Protocol};
 use opentelemetry_sdk::{
-    metrics::SdkMeterProvider,
     resource::{EnvResourceDetector, ResourceDetector},
     Resource,
 };
@@ -17,12 +17,12 @@ pub fn resource() -> Resource {
 }
 
 pub struct OtelGuard {
-    meter_provider: Option<SdkMeterProvider>,
+    pub metrics: MetricsState,
 }
 
 impl Drop for OtelGuard {
     fn drop(&mut self) {
-        if let Some(Err(err)) = self.meter_provider.as_ref().map(|mp| mp.shutdown()) {
+        if let Some(Err(err)) = self.metrics.meter.as_ref().map(|mp| mp.shutdown()) {
             eprintln!("Failed to shutdown meter provider: {err:?}");
         }
 
@@ -31,7 +31,7 @@ impl Drop for OtelGuard {
 }
 
 pub fn init() -> OtelGuard {
-    let meter_provider = metrics::create_meter_provider();
+    let metrics_state = metrics::initialize();
     tracing::create_tracer();
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
     tracing_subscriber::registry()
@@ -39,7 +39,9 @@ pub fn init() -> OtelGuard {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    OtelGuard { meter_provider }
+    OtelGuard {
+        metrics: metrics_state,
+    }
 }
 
 fn create_otlp_export_config() -> ExportConfig {
