@@ -34,8 +34,10 @@ pub struct ProbeExpectation {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ExpectOperation {
     Equals,
+    NotEquals,
     IsOneOf,
     Contains,
+    NotContains,
     Matches,
 }
 
