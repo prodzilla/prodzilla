@@ -14,6 +14,7 @@ use tracing::error;
 use tracing::info;
 
 use crate::alerts::outbound_webhook::alert_if_failure;
+use crate::otel::metrics::MonitorStatus;
 use crate::probe::model::StepResult;
 use crate::probe::variables::substitute_input_parameters;
 use crate::probe::variables::substitute_variables;
@@ -51,7 +52,13 @@ impl Monitorable for Story {
         let story_attributes = [
             KeyValue::new("name", self.name.clone()),
             KeyValue::new("type", "story"),
-        ];
+        ]
+        .into_iter()
+        .chain(self.tags.iter().flat_map(|tags| {
+            tags.iter()
+                .map(|(k, v)| KeyValue::new(k.clone(), v.clone()))
+        }))
+        .collect::<Vec<_>>();
         app_state.metrics.runs.add(1, &story_attributes);
         let mut story_variables = StoryVariables::new();
         let mut step_results: Vec<StepResult> = vec![];
@@ -93,6 +100,7 @@ impl Monitorable for Story {
                         endpoint_result.body,
                         &step.expectations,
                     );
+                    let mut monitor_status = MonitorStatus::Ok.as_u64();
                     if let Err(err) = expectations_result.as_ref() {
                         span.record_error(&err);
                         span.set_status(Status::Error {
@@ -103,7 +111,13 @@ impl Monitorable for Story {
                             .duration
                             .record(time_since(&step_started), &step_tags);
                         app_state.metrics.errors.add(1, &step_tags);
+                        monitor_status = MonitorStatus::Error.as_u64();
                     }
+                    app_state
+                        .metrics
+                        .status
+                        .record(monitor_status, &story_attributes);
+
                     let step_result = StepResult {
                         step_name: step.name.clone(),
                         timestamp_started: endpoint_result.timestamp_request_started,
@@ -211,7 +225,13 @@ impl Monitorable for Probe {
         let probe_attributes = [
             KeyValue::new("name", self.name.clone()),
             KeyValue::new("type", "probe"),
-        ];
+        ]
+        .into_iter()
+        .chain(self.tags.iter().flat_map(|tags| {
+            tags.iter()
+                .map(|(k, v)| KeyValue::new(k.clone(), v.clone()))
+        }))
+        .collect::<Vec<_>>();
         app_state.metrics.runs.add(1, &probe_attributes);
 
         let root_span = global::tracer("probe_logic").start(self.name.clone());
@@ -235,6 +255,15 @@ impl Monitorable for Probe {
                 if let Err(err) = expectations_result.as_ref() {
                     root_cx.span().record_error(&err);
                 }
+
+                let mut monitor_status = MonitorStatus::Ok.as_u64();
+                if expectations_result.is_err() {
+                    monitor_status = MonitorStatus::Error.as_u64();
+                }
+                app_state
+                    .metrics
+                    .status
+                    .record(monitor_status, &probe_attributes);
 
                 ProbeResult {
                     probe_name: self.name.clone(),

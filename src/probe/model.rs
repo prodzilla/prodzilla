@@ -14,6 +14,7 @@ pub struct Probe {
     pub alerts: Option<Vec<ProbeAlert>>,
     #[serde(default)] // default to false
     pub sensitive: bool,
+    pub tags: Option<HashMap<String, String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -93,6 +94,7 @@ pub struct Story {
     pub steps: Vec<Step>,
     pub schedule: ProbeScheduleParameters,
     pub alerts: Option<Vec<ProbeAlert>>,
+    pub tags: Option<HashMap<String, String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
