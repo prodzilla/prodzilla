@@ -13,8 +13,6 @@ probes:
     schedule:
       initial_delay: 0
       interval: 60
-    tags:
-      team: team1
     alerts:
       - url: https://notify.me/some/path
 
