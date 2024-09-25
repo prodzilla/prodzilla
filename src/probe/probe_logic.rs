@@ -275,6 +275,10 @@ impl Monitorable for Probe {
                 }
             }
             Err(e) => {
+                app_state
+                    .metrics
+                    .status
+                    .record(MonitorStatus::Error.as_u64(), &probe_attributes);
                 error!("Error calling endpoint: {}", e);
                 root_cx.span().record_error(&*e);
                 ProbeResult {
