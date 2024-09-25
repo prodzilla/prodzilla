@@ -400,6 +400,7 @@ mod probe_logic_tests {
                 initial_delay: 0,
                 interval: 0,
             },
+            tags: None,
             alerts: None,
         };
 
@@ -470,6 +471,7 @@ mod probe_logic_tests {
             alerts: Some(vec![ProbeAlert {
                 url: format!("{}{}", mock_server.uri(), alert_path.to_owned()),
             }]),
+            tags: None,
         };
 
         story.probe_and_store_result(app_state.clone()).await;
@@ -553,6 +555,7 @@ mod probe_logic_tests {
                 interval: 0,
             },
             alerts: None,
+            tags: None,
         };
 
         story.probe_and_store_result(app_state.clone()).await;
