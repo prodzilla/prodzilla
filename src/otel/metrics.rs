@@ -129,7 +129,6 @@ impl Metrics {
             duration: meter
                 .u64_histogram("duration")
                 .with_description("request duration histogram in milliseconds")
-                .with_unit(Unit::new("ms"))
                 .init(),
             runs: meter
                 .u64_counter("runs")

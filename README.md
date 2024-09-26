@@ -38,7 +38,7 @@ To be part of the community, or for any questions, join our [Discord](https://di
 
 ## Getting Started
 
-To get started probing your services, clone this repo, and in the root execute the command: 
+To get started probing your services, clone this repo, and in the root execute the command:
 
 ```
 cargo run
@@ -50,9 +50,9 @@ You can also use Docker, as Prodzilla is published to `ghcr.io/prodzilla/prodzil
 docker run -v $(pwd)/prodzilla.yml:/prodzilla.yml ghcr.io/prodzilla/prodzilla:main
 ```
 
-The application parses the [prodzilla.yml](/prodzilla.yml) file to generate a list of probes executed on a given schedule, and decide how to alert. Other configuration file paths can be selected using the `-f` flag. Execute `cargo run -- --help` or `prodzilla --help` to see a full list of configuration flags. 
+The application parses the [prodzilla.yml](/prodzilla.yml) file to generate a list of probes executed on a given schedule, and decide how to alert. Other configuration file paths can be selected using the `-f` flag. Execute `cargo run -- --help` or `prodzilla --help` to see a full list of configuration flags.
 
-The bare minimum config required is: 
+The bare minimum config required is:
 
 ```yaml
 probes:
@@ -85,13 +85,17 @@ A complete Probe config looks as follows:
       timeout_seconds: 10
     expectations:
       - field: StatusCode
-        operation: Equals 
+        operation: Equals
         value: "200"
     schedule:
       initial_delay: 2
       interval: 60
     alerts:
       - url: https://notify.me/some/path
+    tags:
+      system: widget-system-a
+      component: service-b
+      owner: super-team-1
 ```
 
 ### Stories
@@ -107,21 +111,24 @@ stories:
         http_method: GET
         expectations:
           - field: StatusCode
-            operation: Equals 
+            operation: Equals
             value: "200"
       - name: get-location
         url: https://ipinfo.io/${{steps.get-ip.response.body.ip}}/geo
         http_method: GET
         expectations:
           - field: StatusCode
-            operation: Equals 
+            operation: Equals
             value: "200"
     schedule:
       initial_delay: 5
       interval: 10
     alerts:
-      - url: https://webhook.site/54a9a526-c104-42a7-9b76-788e897390d8 
-
+      - url: https://webhook.site/54a9a526-c104-42a7-9b76-788e897390d8
+    tags:
+      system: widget-system-a
+      component: service-b
+      owner: super-team-1
 ```
 
 ### Variables
@@ -140,7 +147,7 @@ If a requested environment variable is not set, Prodzilla will log a warning and
 
 ### Expectations
 
-Expectations can be declared using the `expectations` block and supports an unlimited number of rules. Currently, the supported fields are `StatusCode` and `Body`, and the supported operations are `Equals`, `Contains`, `Matches` which accepts a regular expression, and `IsOneOf` (which accepts a string value separated by the pipe symbol `|`).
+Expectations can be declared using the `expectations` block and supports an unlimited number of rules. Currently, the supported fields are `StatusCode` and `Body`, and the supported operations are `Equals`, `Contains`, `Matches`, `NotEquals`, `NotContains` which accepts a regular expression, and `IsOneOf` (which accepts a string value separated by the pipe symbol `|`).
 
 Expectations can be put on Probes, or Steps within Stories.
 
@@ -153,7 +160,7 @@ If expectations aren't met for a Probe or Story, a webhook will be sent to any u
     - name: Probe or Story Name
       ...
       alerts:
-        - url: https://webhook.site/54a9a526-c104-42a7-9b76-788e897390d8 
+        - url: https://webhook.site/54a9a526-c104-42a7-9b76-788e897390d8
         - url: https://hooks.slack.com/services/T000/B000/XXXX
 
 ```
@@ -179,19 +186,19 @@ Prodzilla will also recognize the Slack webhook domain `hooks.slack.com` and pro
 > **"Your Probe" failed.**
 >
 > Error message:
-> 
+>
 > > Failed to meet expectation for field 'StatusCode' with operation Equals "429".
-> 
+>
 > Received status code **500**
-> 
+>
 > Received body:
 >
 > ```
 > Internal Server Error
 > ```
-> 
+>
 > Time: **2024-06-26 14:36:30.094126 UTC**
-> 
+>
 > Trace ID: **e03cc9b03185db8004400049264331de**
 
 OpsGenie, and PagerDuty notification integrations are planned.
@@ -280,7 +287,7 @@ Example Response (for stories, probes will look slightly different):
 ```
 
 ## Monitoring Prodzilla
-Prodzilla generates OpenTelemetry traces and metrics for each probe and story execution. 
+Prodzilla generates OpenTelemetry traces and metrics for each probe and story execution.
 It also outputs structured logs to standard out.
 
 ### Tracked metrics
@@ -291,9 +298,10 @@ Prodzilla tracks the following metrics:
 | runs     | Counter(u64)   | The total number of executions for this test |
 | duration | Histogram(u64) | Time taken to execute the test               |
 | errors   | Counter(u64)   | The total number of errors for this test     |
+| status   | Gauge(u64)     | The current monitor status 0 = OK, 1 = Error |
 
-All metrics have the attributes `name` and `type`. 
-`type` is either `probe` for metrics measuring a probe, `story` for metrics measuring an entire story, or `step` for measuring an individual step in a story. 
+All metrics have the attributes `name` and `type`.
+`type` is either `probe` for metrics measuring a probe, `story` for metrics measuring an entire story, or `step` for measuring an individual step in a story.
 `name` is the name of the probe, story, or step that is being measured.
 Metrics for an individual step have the additional attribute `story_name` which is the name of the story that the step is part of.
 
@@ -301,10 +309,10 @@ Metrics for an individual step have the additional attribute `story_name` which 
 ### Traces
 Prodzilla generates a root span for each story or probe that is being run, and further spans for each step and HTTP call that is made within that test. The trace ID is propagated in these HTTP requests to downstream services, enabling fully distributed insight into the backends that are being called.
 
-Errors occuring in steps and probes or expectations not being met lead to the span in question being marked with the `error` status. Furthermore, the error message and truncated HTTP response body is attached as a span event. 
+Errors occuring in steps and probes or expectations not being met lead to the span in question being marked with the `error` status. Furthermore, the error message and truncated HTTP response body is attached as a span event.
 
 ### Configuring OpenTelemetry export
-Both metrics and traces can be exported with the OTLP protocol over either HTTP or gRPC. 
+Both metrics and traces can be exported with the OTLP protocol over either HTTP or gRPC.
 Configuration follows the OpenTelemetry standard environment variables:
 
 - `OTEL_EXPORTER_OTLP_ENDPOINT` is used to define the collector endpoint. Defaults to `http://localhost:431`
@@ -392,4 +400,3 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
     - TraceIds for every request :white_check_mark:
     - OTLP trace export over gRPC or HTTP :white_check_mark:
     - Metrics for runs, durations and failures exported over OTLP :white_check_mark:
-
