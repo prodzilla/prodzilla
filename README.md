@@ -147,7 +147,7 @@ If a requested environment variable is not set, Prodzilla will log a warning and
 
 ### Expectations
 
-Expectations can be declared using the `expectations` block and supports an unlimited number of rules. Currently, the supported fields are `StatusCode` and `Body`, and the supported operations are `Equals`, `Contains`, `Matches`, `NotEquals`, `NotContains` which accepts a regular expression, and `IsOneOf` (which accepts a string value separated by the pipe symbol `|`).
+Expectations can be declared using the `expectations` block and supports an unlimited number of rules. Currently, the supported fields are `StatusCode` and `Body`, and the supported operations are `Equals`, `NotEquals`, `Contains`, `NotContains`, `Matches` which accepts a regular expression, and `IsOneOf` (which accepts a string value separated by the pipe symbol `|`).
 
 Expectations can be put on Probes, or Steps within Stories.
 
