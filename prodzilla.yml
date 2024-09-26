@@ -15,6 +15,10 @@ probes:
       interval: 60
     alerts:
       - url: https://notify.me/some/path
+    tags:
+      system: super-awesome-system
+      component: super-critical-component
+      owner: team
 
 stories:
   - name: get-ip-user-flow
@@ -40,3 +44,4 @@ stories:
       - url: https://webhook.site/54a9a526-c104-42a7-9b76-788e897390d8
     tags:
       team: team1
+      tier: sev0

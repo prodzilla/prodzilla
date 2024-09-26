@@ -73,7 +73,14 @@ impl Monitorable for Story {
                 KeyValue::new("name", step.name.clone()),
                 KeyValue::new("story_name", self.name.clone()),
                 KeyValue::new("type", "step"),
-            ];
+            ]
+            .into_iter()
+            .chain(self.tags.iter().flat_map(|tags| {
+                tags.iter()
+                    .map(|(k, v)| KeyValue::new(k.clone(), v.clone()))
+            }))
+            .collect::<Vec<_>>();
+
             app_state.metrics.runs.add(1, &step_tags);
             let step_span = tracer.start_with_context(step.name.clone(), &root_cx);
             let step_cx = root_cx.with_span(step_span);
