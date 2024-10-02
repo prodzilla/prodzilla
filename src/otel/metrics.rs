@@ -1,6 +1,6 @@
 use opentelemetry::{
     global,
-    metrics::{Counter, Gauge, Histogram, Unit},
+    metrics::{Counter, Gauge, Histogram},
 };
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::{
