@@ -27,6 +27,7 @@ lazy_static! {
     static ref CLIENT: reqwest::Client = reqwest::ClientBuilder::new()
         .user_agent("Prodzilla Probe/1.0")
         .pool_idle_timeout(None)
+        .pool_max_idle_per_host(0)
         .build()
         .unwrap();
 }
