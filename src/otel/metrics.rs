@@ -1,6 +1,6 @@
 use opentelemetry::{
     global,
-    metrics::{Counter, Gauge, Histogram},
+    metrics::{Counter, Gauge, Histogram, Unit},
 };
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::{
@@ -128,6 +128,7 @@ impl Metrics {
         Metrics {
             duration: meter
                 .u64_histogram("duration")
+                .with_unit(Unit::new("ms"))
                 .with_description("request duration histogram in milliseconds")
                 .init(),
             runs: meter
