@@ -1,6 +1,6 @@
 use opentelemetry::{
     global,
-    metrics::{Counter, Histogram},
+    metrics::{Counter, Gauge, Histogram, Unit},
 };
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::{
@@ -107,15 +107,42 @@ pub struct Metrics {
     pub duration: Histogram<u64>,
     pub runs: Counter<u64>,
     pub errors: Counter<u64>,
+    pub status: Gauge<u64>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum MonitorStatus {
+    Ok = 0,
+    Error = 1,
+}
+
+impl MonitorStatus {
+    pub fn as_u64(&self) -> u64 {
+        *self as u64
+    }
 }
 
 impl Metrics {
     pub fn new() -> Metrics {
         let meter = opentelemetry::global::meter("prodzilla");
         Metrics {
-            duration: meter.u64_histogram("duration").init(),
-            runs: meter.u64_counter("runs").init(),
-            errors: meter.u64_counter("errors").init(),
+            duration: meter
+                .u64_histogram("duration")
+                .with_unit(Unit::new("ms"))
+                .with_description("request duration histogram in milliseconds")
+                .init(),
+            runs: meter
+                .u64_counter("runs")
+                .with_description("the total count of runs by monitor (story/probe)")
+                .init(),
+            errors: meter
+                .u64_counter("errors")
+                .with_description("the total number of errors by monitor (story/probe)")
+                .init(),
+            status: meter
+                .u64_gauge("status")
+                .with_description("the current status of each monitor OK = 0 Error = 1")
+                .init(),
         }
     }
 }

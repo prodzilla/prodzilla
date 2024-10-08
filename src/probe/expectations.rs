@@ -50,7 +50,9 @@ pub fn validate_response_internal(
 fn expectation_met(operation: &ExpectOperation, expected: &String, received: &String) -> bool {
     match operation {
         ExpectOperation::Equals => expected == received,
+        ExpectOperation::NotEquals => expected != received,
         ExpectOperation::Contains => received.contains(expected),
+        ExpectOperation::NotContains => !received.contains(expected),
         ExpectOperation::IsOneOf => expected.split('|').any(|part| part == received),
         // TODO: This regex could probably be pre-compiled?
         ExpectOperation::Matches => Regex::new(expected).unwrap().is_match(received),
@@ -100,6 +102,23 @@ async fn test_validate_expectations_equals() {
 }
 
 #[tokio::test]
+async fn test_validate_expectations_not_equals() {
+    let success_result = expectation_met(
+        &ExpectOperation::NotEquals,
+        &"Test".to_owned(),
+        &"Test123".to_owned(),
+    );
+    assert!(success_result);
+
+    let fail_result = expectation_met(
+        &ExpectOperation::NotEquals,
+        &"Test".to_owned(),
+        &"Test".to_owned(),
+    );
+    assert!(!fail_result);
+}
+
+#[tokio::test]
 async fn test_validate_expectations_contains() {
     let success_result = expectation_met(
         &ExpectOperation::Contains,
@@ -112,6 +131,23 @@ async fn test_validate_expectations_contains() {
         &ExpectOperation::Contains,
         &"Test123".to_owned(),
         &"Test".to_owned(),
+    );
+    assert!(!fail_result);
+}
+
+#[tokio::test]
+async fn test_validate_expectations_not_contains() {
+    let success_result = expectation_met(
+        &ExpectOperation::NotContains,
+        &"Test123".to_owned(),
+        &"Test".to_owned(),
+    );
+    assert!(success_result);
+
+    let fail_result = expectation_met(
+        &ExpectOperation::NotContains,
+        &"Test".to_owned(),
+        &"Test123".to_owned(),
     );
     assert!(!fail_result);
 }
