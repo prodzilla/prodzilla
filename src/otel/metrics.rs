@@ -108,6 +108,7 @@ pub struct Metrics {
     pub runs: Counter<u64>,
     pub errors: Counter<u64>,
     pub status: Gauge<u64>,
+    pub http_status_code: Gauge<u64>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -142,6 +143,12 @@ impl Metrics {
             status: meter
                 .u64_gauge("status")
                 .with_description("the current status of each monitor OK = 0 Error = 1")
+                .init(),
+            http_status_code: meter
+                .u64_gauge("http_status_code")
+                .with_description(
+                    "the current HTTP status code of the step, 0 if the HTTP call fails",
+                )
                 .init(),
         }
     }
