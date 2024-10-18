@@ -11,7 +11,7 @@ use probe::schedule::schedule_probes;
 use probe::schedule::schedule_stories;
 use std::sync::Arc;
 use web_server::start_axum_server;
-use web_server::start_promtehus_server;
+use web_server::start_prometheus_server;
 
 use crate::{app_state::AppState, config::load_config};
 
@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let otel_state = otel::init();
     if let Some(registry) = &otel_state.metrics.registry {
-        tokio::spawn(start_promtehus_server(registry.clone()));
+        tokio::spawn(start_prometheus_server(registry.clone()));
     }
 
     let config = load_config(args.file).await?;

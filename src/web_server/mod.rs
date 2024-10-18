@@ -33,7 +33,7 @@ pub async fn start_axum_server(app_state: Arc<AppState>) {
     axum::serve(listener, app).await.unwrap();
 }
 
-pub async fn start_promtehus_server(registry: Arc<prometheus::Registry>) {
+pub async fn start_prometheus_server(registry: Arc<prometheus::Registry>) {
     let host = match env::var("OTEL_EXPORTER_PROMETHEUS_HOST") {
         Ok(host) => host,
         Err(_) => "localhost".to_owned(),
