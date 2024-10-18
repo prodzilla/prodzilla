@@ -95,6 +95,10 @@ impl Monitorable for Story {
 
             match call_endpoint_result {
                 Ok(endpoint_result) => {
+                    app_state
+                        .metrics
+                        .http_status_code
+                        .record(endpoint_result.status_code.into(), &step_tags);
                     let probe_response = endpoint_result.to_probe_response();
                     let span = step_cx.span();
                     span.set_attribute(opentelemetry::KeyValue::new(
@@ -157,6 +161,7 @@ impl Monitorable for Story {
                 }
                 Err(e) => {
                     error!("Error calling endpoint: {}", e);
+                    app_state.metrics.http_status_code.record(0, &step_tags);
                     trace::get_active_span(|span| {
                         span.record_error(&*e);
                     });
@@ -251,6 +256,10 @@ impl Monitorable for Probe {
 
         let probe_result = match call_endpoint_result {
             Ok(endpoint_result) => {
+                app_state
+                    .metrics
+                    .http_status_code
+                    .record(endpoint_result.status_code.into(), &probe_attributes);
                 let probe_response = endpoint_result.to_probe_response();
                 let expectations_result = validate_response(
                     &self.name,
@@ -282,6 +291,10 @@ impl Monitorable for Probe {
                 }
             }
             Err(e) => {
+                app_state
+                    .metrics
+                    .http_status_code
+                    .record(0, &probe_attributes);
                 app_state
                     .metrics
                     .status

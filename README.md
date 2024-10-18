@@ -7,6 +7,7 @@ Prodzilla supports chained requests to endpoints, passing of values from one res
 It's also lightning fast, runs with < 15mb of ram, and is free to host on [Shuttle](https://shuttle.rs/).
 
 The long-term goals of Prodzilla are:
+
 - Reduce divergence and duplication of code between blackbox, end-to-end testing and production observability
 - Avoid situations where documented system behaviour is out of date, or system behaviour in specific situations is totally unknown
 - Make testing in production easier
@@ -18,21 +19,21 @@ To be part of the community, or for any questions, join our [Discord](https://di
 - [Table of Contents](#table-of-contents)
 - [Getting Started](#getting-started)
 - [Configuring Synthetic Monitors](#configuring-synthetic-monitors)
-    - [Probes](#probes)
-    - [Stories](#stories)
-    - [Variables](#variables)
-    - [Expectations](#expectations)
+  - [Probes](#probes)
+  - [Stories](#stories)
+  - [Variables](#variables)
+  - [Expectations](#expectations)
 - [Notifications for Failures](#notifications-for-failures)
 - [Prodzilla Server Endpoints](#prodzilla-server-endpoints)
-    - [Get Probes and Stories](#get-probes-and-stories)
-    - [Get Probe and Story Results](#get-probe-and-story-results)
-    - [Trigger Probe or Story (In Development)](#trigger-probe-or-story-in-development)
+  - [Get Probes and Stories](#get-probes-and-stories)
+  - [Get Probe and Story Results](#get-probe-and-story-results)
+  - [Trigger Probe or Story (In Development)](#trigger-probe-or-story-in-development)
 - [Monitoring Prodzilla](#monitoring-prodzilla)
-    - [Tracked metrics](#tracked-metrics)
-    - [Traces](#traces)
-    - [Configuring OpenTelemetry export](#configuring-opentelemetry-export)
-      - [Prometheus](#prometheus)
-    - [Configuring log level](#configuring-log-level)
+  - [Tracked metrics](#tracked-metrics)
+  - [Traces](#traces)
+  - [Configuring OpenTelemetry export](#configuring-opentelemetry-export)
+    - [Prometheus](#prometheus)
+  - [Configuring log level](#configuring-log-level)
 - [Deploying on Shuttle for Free](#deploying-on-shuttle-for-free)
 - [Feature Roadmap](#feature-roadmap)
 
@@ -69,33 +70,34 @@ probes:
 Prodzilla offers two ways to check live endpoints, Probes and Stories.
 
 ### Probes
+
 Probes define a single endpoint to be called with given parameters, and assert the response is as expected. This is a traditional synthetic monitor.
 
 A complete Probe config looks as follows:
 
 ```yaml
-  - name: Your Post Url
-    url: https://your.site/some/path
-    http_method: POST
-    sensitive: false
-    with:
-      headers:
-        x-client-id: ClientId
-      body: '"{"test": true}"'
-      timeout_seconds: 10
-    expectations:
-      - field: StatusCode
-        operation: Equals
-        value: "200"
-    schedule:
-      initial_delay: 2
-      interval: 60
-    alerts:
-      - url: https://notify.me/some/path
-    tags:
-      system: widget-system-a
-      component: service-b
-      owner: super-team-1
+- name: Your Post Url
+  url: https://your.site/some/path
+  http_method: POST
+  sensitive: false
+  with:
+    headers:
+      x-client-id: ClientId
+    body: '"{"test": true}"'
+    timeout_seconds: 10
+  expectations:
+    - field: StatusCode
+      operation: Equals
+      value: "200"
+  schedule:
+    initial_delay: 2
+    interval: 60
+  alerts:
+    - url: https://notify.me/some/path
+  tags:
+    system: widget-system-a
+    component: service-b
+    owner: super-team-1
 ```
 
 ### Stories
@@ -151,7 +153,6 @@ Expectations can be declared using the `expectations` block and supports an unli
 
 Expectations can be put on Probes, or Steps within Stories.
 
-
 ## Notifications for Failures
 
 If expectations aren't met for a Probe or Story, a webhook will be sent to any urls configured within `alerts`.
@@ -166,17 +167,17 @@ If expectations aren't met for a Probe or Story, a webhook will be sent to any u
 ```
 
 The webhook looks as such:
+
 ```yaml
 {
   "message": "Probe failed.",
   "probe_name": "Your Probe",
   "failure_timestamp": "2024-01-26T02:41:02.983025Z",
   "trace_id": "123456789abcdef",
-  "error_message": "Failed to meet expectation for field 'StatusCode' with operation Equals \"200\".",
+  "error_message": 'Failed to meet expectation for field ''StatusCode'' with operation Equals "200".',
   "status_code": 500,
-  "body": "Internal Server Error"
+  "body": "Internal Server Error",
 }
-
 ```
 
 Response bodies are truncated to 500 characters. If a step or probe is marked as sensitive, the request body will be redacted from logs and alerts.
@@ -207,12 +208,12 @@ OpsGenie, and PagerDuty notification integrations are planned.
 
 Prodzilla also exposes a web server, which you can use to retrieve details about probes and stories, or trigger them. When running locally, these will exist at `localhost:3000`, e.g. `localhost:3000/stories`.
 
-
 ### Get Probes and Stories
 
 These endpoints output the running probes and stories, as well as their current status.
 
 Paths:
+
 - /probes
 - /stories
 
@@ -234,13 +235,16 @@ Example Response:
 These endpoints output all of the results for a probe or story.
 
 Paths:
+
 - /probes/{name}/results
 - /stories/{name}/results
 
 Query Parameters:
+
 - show_response: bool - This determines whether the response, including the body, is output. Defaults to false.
 
 Example Response (for stories, probes will look slightly different):
+
 ```json
 [
     {
@@ -271,10 +275,12 @@ Example Response (for stories, probes will look slightly different):
 These endpoints will trigger a probe or story immediately, store the result alongside the scheduled results, and return the result.
 
 Paths:
+
 - /probes/{name}/trigger
 - /stories{name}/trigger
 
 Example Response (for stories, probes will look slightly different):
+
 ```json
 {
     "story_name": "get-ip-user-flow",
@@ -287,31 +293,35 @@ Example Response (for stories, probes will look slightly different):
 ```
 
 ## Monitoring Prodzilla
+
 Prodzilla generates OpenTelemetry traces and metrics for each probe and story execution.
 It also outputs structured logs to standard out.
 
 ### Tracked metrics
+
 Prodzilla tracks the following metrics:
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| runs     | Counter(u64)   | The total number of executions for this test |
-| duration | Histogram(u64) | Time taken to execute the test               |
-| errors   | Counter(u64)   | The total number of errors for this test     |
-| status   | Gauge(u64)     | The current monitor status 0 = OK, 1 = Error |
+| Name             | Type           | Description                                                       |
+| ---------------- | -------------- | ----------------------------------------------------------------- |
+| runs             | Counter(u64)   | The total number of executions for this test                      |
+| duration         | Histogram(u64) | Time taken to execute the test                                    |
+| errors           | Counter(u64)   | The total number of errors for this test                          |
+| status           | Gauge(u64)     | The current monitor status 0 = OK, 1 = Error                      |
+| http_status_code | Gauge(u64)     | The current HTTP status code of a step. 0 If the HTTP call fails. |
 
 All metrics have the attributes `name` and `type`.
 `type` is either `probe` for metrics measuring a probe, `story` for metrics measuring an entire story, or `step` for measuring an individual step in a story.
 `name` is the name of the probe, story, or step that is being measured.
 Metrics for an individual step have the additional attribute `story_name` which is the name of the story that the step is part of.
 
-
 ### Traces
+
 Prodzilla generates a root span for each story or probe that is being run, and further spans for each step and HTTP call that is made within that test. The trace ID is propagated in these HTTP requests to downstream services, enabling fully distributed insight into the backends that are being called.
 
 Errors occuring in steps and probes or expectations not being met lead to the span in question being marked with the `error` status. Furthermore, the error message and truncated HTTP response body is attached as a span event.
 
 ### Configuring OpenTelemetry export
+
 Both metrics and traces can be exported with the OTLP protocol over either HTTP or gRPC.
 Configuration follows the OpenTelemetry standard environment variables:
 
@@ -324,6 +334,7 @@ Configuration follows the OpenTelemetry standard environment variables:
 Furthermore, resource attributes can be set with `OTEL_RESOURCE_ATTRIBUTES`.
 
 #### Prometheus
+
 Prodzilla is also able to export the same metrics as a Prometheus endpoint. This is configured with the environment variables:
 
 - `OTEL_METRICS_EXPORTER` must be set to `prometheus`
@@ -333,16 +344,17 @@ Prodzilla is also able to export the same metrics as a Prometheus endpoint. This
 Metrics are served at `/metrics` in the plain-text Prometheus format.
 
 ### Configuring log level
+
 The logging level can be set using the environment variable `RUST_LOG`. Supported levels are `trace`, `debug`, `info`, `warn`, and `error` in ascending order of severity.
 
 ## Deploying on Shuttle for Free
 
 [Shuttle.rs](https://shuttle.rs) allows hosting of Rust apps for free. Check out [How I'm Getting Free Synthetic Monitoring](https://codingupastorm.dev/2023/11/07/prodzilla-and-shuttle/) for a tutorial on how to deploy Prodzilla to Shuttle for free.
 
-
 ## Feature Roadmap
 
 The intention is to develop a base set of synthetic monitoring features, before focusing on longer-term goals such as:
+
 - Supporting complex user flows typically not tested in production
 - Increasing visibility of existing production behaviour from current and past probes
 - Automatically generating probes based on OpenAPI schemas, and on deployment
@@ -355,48 +367,48 @@ Progress on the base set of synthetic monitoring features is loosely tracked bel
 :bricks: = In development
 
 - Protocol Support
-    - HTTP / HTTPS Calls :white_check_mark:
-    - gRPC
+  - HTTP / HTTPS Calls :white_check_mark:
+  - gRPC
 - Request Construction
-    - Add headers :white_check_mark:
-    - Add body :white_check_mark:
-    - Custom timeouts
+  - Add headers :white_check_mark:
+  - Add body :white_check_mark:
+  - Custom timeouts
 - Response Validation
-    - Status code :white_check_mark:
-    - Response body :white_check_mark:
-    - Specific fields
-    - Regex :white_check_mark:
+  - Status code :white_check_mark:
+  - Response body :white_check_mark:
+  - Specific fields
+  - Regex :white_check_mark:
 - Yaml Objects / Reusable parameters / Human Readability
-    - Reusable Request bodies
-    - Reusable Authenticated users
-    - Reusable Validation
-    - Environment variable interpolation in configuration file :white_check_mark:
+  - Reusable Request bodies
+  - Reusable Authenticated users
+  - Reusable Validation
+  - Environment variable interpolation in configuration file :white_check_mark:
 - Result storage
-    - In Memory :white_check_mark:
-    - In a Database
+  - In Memory :white_check_mark:
+  - In a Database
 - Output
-    - JSON output of results for all probes :white_check_mark:
-    - Prometheus Endpoint :white_check_mark:
-    - UI output of results for all probes
+  - JSON output of results for all probes :white_check_mark:
+  - Prometheus Endpoint :white_check_mark:
+  - UI output of results for all probes
 - Forwarding alerts
-    - Webhooks :white_check_mark:
-    - Slack :bricks:
-    - Email
-    - Splunk / OpsGenie / PagerDuty / slack integrations?
+  - Webhooks :white_check_mark:
+  - Slack :bricks:
+  - Email
+  - Splunk / OpsGenie / PagerDuty / slack integrations?
 - Complex Tests
-    - Retries
-    - Chained queries :white_check_mark:
-    - Parameters in queries :white_check_mark:
-    - Triggering probes manually :white_check_mark:
-    - Generation of fields e.g. UUIDs :white_check_mark:
-    - Parametrized tests
+  - Retries
+  - Chained queries :white_check_mark:
+  - Parameters in queries :white_check_mark:
+  - Triggering probes manually :white_check_mark:
+  - Generation of fields e.g. UUIDs :white_check_mark:
+  - Parametrized tests
 - Easy clone and deploy
-    - On Shuttle :white_check_mark:
+  - On Shuttle :white_check_mark:
 - CI / CD Integration
-    - Standalone easy-to-install image :bricks:
-    - Github Actions integration to trigger tests / use as smoke tests :bricks:
-    - Docker images for main branch and tagged releases :white_check_mark:
+  - Standalone easy-to-install image :bricks:
+  - Github Actions integration to trigger tests / use as smoke tests :white_check_mark:
+  - Docker images for main branch and tagged releases :white_check_mark:
 - Otel Support
-    - TraceIds for every request :white_check_mark:
-    - OTLP trace export over gRPC or HTTP :white_check_mark:
-    - Metrics for runs, durations and failures exported over OTLP :white_check_mark:
+  - TraceIds for every request :white_check_mark:
+  - OTLP trace export over gRPC or HTTP :white_check_mark:
+  - Metrics for runs, durations and failures exported over OTLP :white_check_mark:
