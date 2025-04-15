@@ -76,9 +76,12 @@ pub async fn alert_if_failure(
 pub async fn send_generic_webhook(
     url: &String,
     body: String,
+    content_type: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send>> {
-    let mut request = CLIENT.post(url);
-    request = request.body(body);
+    let request = CLIENT
+        .post(url)
+        .body(body)
+        .header("content-type", content_type);
 
     let alert_response = request
         .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
@@ -113,7 +116,7 @@ pub async fn send_webhook_alert(
     };
 
     let json = serde_json::to_string(&request_body).map_to_send_err()?;
-    send_generic_webhook(url, json).await
+    send_generic_webhook(url, json, "application/json").await
 }
 
 pub async fn send_slack_alert(
@@ -183,8 +186,7 @@ pub async fn send_slack_alert(
     });
     let request_body = SlackNotification { blocks };
     let json = serde_json::to_string(&request_body).map_to_send_err()?;
-    println!("{}", json);
-    send_generic_webhook(webhook_url, json).await
+    send_generic_webhook(webhook_url, json, "application/json").await
 }
 
 pub async fn send_alert(
