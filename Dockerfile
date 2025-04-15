@@ -2,7 +2,7 @@
 
 ARG RUST_VERSION=1.78
 
-FROM --platform=$BUILDPLATFORM rust:${RUST_VERSION}-slim-bookworm AS build
+FROM rust:${RUST_VERSION}-slim-bookworm AS build
 
 WORKDIR /app
 
