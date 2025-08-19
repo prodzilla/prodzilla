@@ -24,7 +24,7 @@ pub async fn start_axum_server(app_state: Arc<AppState>) {
         .route("/stories/:name/trigger", get(story_trigger))
         .layer(Extension(app_state.clone()));
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
         .await
         .unwrap();
 
