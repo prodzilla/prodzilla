@@ -46,10 +46,15 @@ pub async fn probes(Extension(state): Extension<Arc<AppState>>) -> Json<Vec<Prob
         let last = value.last().unwrap();
         let status = if last.success { "OK" } else { "FAILING" };
 
+        // Find the corresponding probe config to get tags
+        let probe_config = state.config.probes.iter().find(|p| p.name == *key);
+        let tags = probe_config.and_then(|p| p.tags.clone());
+
         probes.push(ProbeResponse {
             name: key.clone(),
             status: status.to_owned(),
             last_probed: last.timestamp_started,
+            tags,
         })
     }
 
