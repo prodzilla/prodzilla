@@ -50,10 +50,15 @@ pub async fn stories(Extension(state): Extension<Arc<AppState>>) -> Json<Vec<Pro
         let last = value.last().unwrap();
         let status = if last.success { "OK" } else { "FAILING" };
 
+        // Find the corresponding story config to get tags
+        let story_config = state.config.stories.iter().find(|s| s.name == *key);
+        let tags = story_config.and_then(|s| s.tags.clone());
+
         stories.push(ProbeResponse {
             name: key.clone(),
             status: status.to_owned(),
             last_probed: last.timestamp_started,
+            tags,
         })
     }
 
