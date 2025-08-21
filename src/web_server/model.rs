@@ -19,8 +19,7 @@ pub struct ProbeResponse {
 
 #[derive(Debug, Deserialize)]
 pub struct BulkTriggerRequest {
-    #[serde(default)]
-    pub tags: Vec<String>,
+    pub tags: HashMap<String, String>,
 }
 
 #[derive(Debug, Serialize)]

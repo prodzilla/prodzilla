@@ -90,25 +90,12 @@ pub async fn bulk_probe_trigger(
         // Trigger all probes if no tags specified
         state.config.probes.iter().collect()
     } else {
-        // Parse requested tags into key:value pairs
-        let requested_tags: Vec<(String, String)> = request.tags
-            .iter()
-            .filter_map(|tag| {
-                let parts: Vec<&str> = tag.splitn(2, ':').collect();
-                if parts.len() == 2 {
-                    Some((parts[0].to_string(), parts[1].to_string()))
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        // Filter probes that have any of the requested tags
+        // Filter probes that have all of the requested tags
         state.config.probes
             .iter()
             .filter(|probe| {
                 if let Some(probe_tags) = &probe.tags {
-                    requested_tags.iter().any(|(key, value)| {
+                    request.tags.iter().all(|(key, value)| {
                         probe_tags.get(key).map_or(false, |v| v == value)
                     })
                 } else {

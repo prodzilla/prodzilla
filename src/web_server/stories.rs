@@ -99,25 +99,12 @@ pub async fn bulk_story_trigger(
         // Trigger all stories if no tags specified
         state.config.stories.iter().collect()
     } else {
-        // Parse requested tags into key:value pairs
-        let requested_tags: Vec<(String, String)> = request.tags
-            .iter()
-            .filter_map(|tag| {
-                let parts: Vec<&str> = tag.splitn(2, ':').collect();
-                if parts.len() == 2 {
-                    Some((parts[0].to_string(), parts[1].to_string()))
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        // Filter stories that have any of the requested tags
+        // Filter stories that have all of the requested tags
         state.config.stories
             .iter()
             .filter(|story| {
                 if let Some(story_tags) = &story.tags {
-                    requested_tags.iter().any(|(key, value)| {
+                    request.tags.iter().all(|(key, value)| {
                         story_tags.get(key).map_or(false, |v| v == value)
                     })
                 } else {
