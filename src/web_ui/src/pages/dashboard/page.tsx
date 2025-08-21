@@ -1,111 +1,23 @@
-import { useState, useEffect } from 'react';
-import {
-  fetchProbes,
-  fetchStories,
-  fetchProbeResults,
-  fetchStoryResults,
-} from '@/lib/api-client';
-import { filterByTags, searchByName, getGroupedTags } from '@/lib/helpers';
+import { filterByTags, searchByName } from '@/lib/helpers';
 import MonitorCard from './components/MonitorCard';
 import FilterBar from './components/FilterBar';
 import ResultsSidebar from './components/ResultsSidebar';
+import { DashboardProvider } from './providers/DashboardProvider';
+import { useDashboard, useTagFilters } from './hooks/useDashboard';
 
-type MonitorItem = {
-  name: string;
-  status: string;
-  last_probed: string;
-  tags?: Record<string, string> | null;
-};
-
-type SelectedMonitor = {
-  name: string;
-  type: 'probe' | 'story';
-};
-
-export default function Dashboard() {
-  const [probes, setProbes] = useState<MonitorItem[]>([]);
-  const [stories, setStories] = useState<MonitorItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-
-  // Sidebar state
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [selectedMonitor, setSelectedMonitor] =
-    useState<SelectedMonitor | null>(null);
-  const [results, setResults] = useState<any[] | null>(null);
-  const [resultsLoading, setResultsLoading] = useState(false);
-  const [resultsError, setResultsError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [probesData, storiesData] = await Promise.all([
-          fetchProbes(),
-          fetchStories(),
-        ]);
-        setProbes(probesData);
-        setStories(storiesData);
-      } catch (error) {
-        console.error('Failed to load data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
+function DashboardContent() {
+  const { probes, stories, loading } = useDashboard();
+  const { searchTerm, selectedTags } = useTagFilters();
 
   const allItems = [
     ...probes.map((p) => ({ ...p, type: 'probe' as const })),
     ...stories.map((s) => ({ ...s, type: 'story' as const })),
   ];
 
-  const groupedTags = getGroupedTags(allItems);
-
   const filteredItems = filterByTags(
     searchByName(allItems, searchTerm),
     selectedTags
   );
-
-  const handleTagToggle = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-    );
-  };
-
-  const handleClearFilters = () => {
-    setSearchTerm('');
-    setSelectedTags([]);
-  };
-
-  const handleMonitorClick = async (name: string, type: 'probe' | 'story') => {
-    setSelectedMonitor({ name, type });
-    setSidebarOpen(true);
-    setResultsLoading(true);
-    setResultsError(null);
-    setResults(null);
-
-    try {
-      const data =
-        type === 'probe'
-          ? await fetchProbeResults(name)
-          : await fetchStoryResults(name);
-      setResults(data);
-    } catch (error) {
-      setResultsError('Failed to fetch results');
-      console.error('Error fetching results:', error);
-    } finally {
-      setResultsLoading(false);
-    }
-  };
-
-  const handleCloseSidebar = () => {
-    setSidebarOpen(false);
-    setSelectedMonitor(null);
-    setResults(null);
-    setResultsError(null);
-  };
 
   if (loading) {
     return (
@@ -124,14 +36,7 @@ export default function Dashboard() {
           </h1>
         </div>
 
-        <FilterBar
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          selectedTags={selectedTags}
-          groupedTags={groupedTags}
-          onTagToggle={handleTagToggle}
-          onClearFilters={handleClearFilters}
-        />
+        <FilterBar allItems={allItems} />
 
         <div className="mb-6 text-gray-600">
           {filteredItems.length === allItems.length ? (
@@ -161,22 +66,21 @@ export default function Dashboard() {
                 last_probed={item.last_probed}
                 tags={item.tags}
                 type={item.type}
-                onTagClick={handleTagToggle}
-                onClick={() => handleMonitorClick(item.name, item.type)}
               />
             ))}
           </div>
         )}
       </div>
 
-      <ResultsSidebar
-        isOpen={sidebarOpen}
-        onClose={handleCloseSidebar}
-        selectedMonitor={selectedMonitor}
-        results={results}
-        loading={resultsLoading}
-        error={resultsError}
-      />
+      <ResultsSidebar />
     </div>
+  );
+}
+
+export default function Dashboard() {
+  return (
+    <DashboardProvider>
+      <DashboardContent />
+    </DashboardProvider>
   );
 }

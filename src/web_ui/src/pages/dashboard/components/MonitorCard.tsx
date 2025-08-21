@@ -1,6 +1,7 @@
 import StatusBadge from './StatusBadge';
 import TagList from './TagList';
-import { formatDateTime } from '../../../lib/helpers';
+import { formatDateTime } from '@/lib/helpers';
+import { useMonitorActions } from '../hooks/useDashboard';
 
 type MonitorCardProps = {
   name: string;
@@ -8,8 +9,6 @@ type MonitorCardProps = {
   last_probed: string;
   tags?: Record<string, string> | null;
   type: 'probe' | 'story';
-  onTagClick?: (tag: string) => void;
-  onClick?: () => void;
 };
 
 export default function MonitorCard({ 
@@ -17,16 +16,13 @@ export default function MonitorCard({
   status, 
   last_probed, 
   tags, 
-  type,
-  onTagClick,
-  onClick
+  type
 }: MonitorCardProps) {
+  const { handleMonitorClick, handleTagToggle } = useMonitorActions();
   return (
     <div 
-      className={`bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow ${
-        onClick ? 'cursor-pointer hover:shadow-lg' : ''
-      }`}
-      onClick={onClick}
+      className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow cursor-pointer hover:shadow-lg"
+      onClick={() => handleMonitorClick(name, type)}
     >
       <div className="flex items-start justify-between mb-2">
         <h3 className="text-lg font-semibold text-gray-900">{name}</h3>
@@ -41,7 +37,7 @@ export default function MonitorCard({
       </div>
       
       <div onClick={(e) => e.stopPropagation()}>
-        <TagList tags={tags} onTagClick={onTagClick} clickable={!!onTagClick} />
+        <TagList tags={tags} onTagClick={handleTagToggle} clickable />
       </div>
     </div>
   );

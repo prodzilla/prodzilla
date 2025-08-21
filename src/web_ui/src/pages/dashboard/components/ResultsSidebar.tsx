@@ -1,50 +1,31 @@
 import { useEffect } from 'react';
 import ProbeResultItem from './ProbeResultItem';
 import StoryResultItem from './StoryResultItem';
+import { useSidebar } from '../hooks/useDashboard';
 
-type SelectedMonitor = {
-  name: string;
-  type: 'probe' | 'story';
-};
-
-type ResultsSidebarProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  selectedMonitor: SelectedMonitor | null;
-  results: any[] | null;
-  loading: boolean;
-  error: string | null;
-};
-
-export default function ResultsSidebar({
-  isOpen,
-  onClose,
-  selectedMonitor,
-  results,
-  loading,
-  error,
-}: ResultsSidebarProps) {
+export default function ResultsSidebar() {
+  const { sidebarOpen, selectedMonitor, results, resultsLoading, resultsError, handleCloseSidebar } = useSidebar();
   // Close on escape key
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onClose();
+        handleCloseSidebar();
       }
     };
 
-    if (isOpen) {
+    if (sidebarOpen) {
       document.addEventListener('keydown', handleKeyDown);
       return () => document.removeEventListener('keydown', handleKeyDown);
     }
-  }, [isOpen, onClose]);
+  }, [sidebarOpen, handleCloseSidebar]);
 
-  if (!isOpen) return null;
+  if (!sidebarOpen) return null;
 
   return (
     <>
       <div
         className={`fixed right-0 top-0 h-full w-96 bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
+          sidebarOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         {/* Header */}
@@ -58,7 +39,7 @@ export default function ResultsSidebar({
             </span>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleCloseSidebar}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
           >
             <svg
@@ -79,19 +60,19 @@ export default function ResultsSidebar({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
-          {loading && (
+          {resultsLoading && (
             <div className="flex items-center justify-center h-32">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
           )}
 
-          {error && (
+          {resultsError && (
             <div className="p-4 text-red-600 bg-red-50 m-4 rounded">
-              {error}
+              {resultsError}
             </div>
           )}
 
-          {results && !loading && !error && (
+          {results && !resultsLoading && !resultsError && (
             <div>
               {results.length === 0 ? (
                 <div className="p-4 text-center text-gray-500">

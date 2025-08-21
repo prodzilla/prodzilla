@@ -1,20 +1,13 @@
+import { useTagFilters } from '../hooks/useDashboard';
+import { getGroupedTags } from '@/lib/helpers';
+
 type FilterBarProps = {
-  searchTerm: string;
-  onSearchChange: (term: string) => void;
-  selectedTags: string[];
-  groupedTags: Record<string, string[]>;
-  onTagToggle: (tag: string) => void;
-  onClearFilters: () => void;
+  allItems: Array<{ tags?: Record<string, string> | null }>;
 };
 
-export default function FilterBar({
-  searchTerm,
-  onSearchChange,
-  selectedTags,
-  groupedTags,
-  onTagToggle,
-  onClearFilters,
-}: FilterBarProps) {
+export default function FilterBar({ allItems }: FilterBarProps) {
+  const { searchTerm, selectedTags, setSearchTerm, handleTagToggle, handleClearFilters } = useTagFilters();
+  const groupedTags = getGroupedTags(allItems);
   return (
     <div className="bg-white rounded-lg shadow p-4 mb-6">
       <div className="mb-4">
@@ -22,7 +15,7 @@ export default function FilterBar({
           type="text"
           placeholder="Search monitors by name..."
           value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
+          onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </div>
@@ -35,7 +28,7 @@ export default function FilterBar({
             </span>
             {selectedTags.length > 0 && (
               <button
-                onClick={onClearFilters}
+                onClick={handleClearFilters}
                 className="text-sm text-blue-600 hover:text-blue-800 font-medium"
               >
                 Clear All Filters
@@ -57,7 +50,7 @@ export default function FilterBar({
                       return (
                         <button
                           key={fullTag}
-                          onClick={() => onTagToggle(fullTag)}
+                          onClick={() => handleTagToggle(fullTag)}
                           className={`inline-flex items-center px-3 py-1 rounded-sm text-sm font-medium transition-colors ${
                             selectedTags.includes(fullTag)
                               ? 'bg-blue-600 text-white'
