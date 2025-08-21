@@ -12,7 +12,7 @@ use crate::{
     probe::{model::ProbeResult, probe_logic::Monitorable},
 };
 
-use super::model::{ProbeQueryParams, ProbeResponse, BulkTriggerRequest, BulkTriggerResponse, TriggerResult};
+use super::model::{ProbeQueryParams, ProbeResponse, BulkTriggerRequest, BulkTriggerResponse};
 
 pub async fn get_probe_results(
     Path(name): Path<String>,
@@ -127,17 +127,21 @@ pub async fn bulk_probe_trigger(
             async move {
                 let triggered_at = Utc::now();
                 match probe.probe_and_store_result(state_clone).await {
-                    Ok(_) => TriggerResult {
-                        name: probe_name,
+                    Ok(_) => ProbeResult {
+                        probe_name,
+                        timestamp_started: triggered_at,
                         success: true,
-                        triggered_at,
                         error_message: None,
+                        response: None,
+                        trace_id: None,
                     },
-                    Err(e) => TriggerResult {
-                        name: probe_name,
+                    Err(e) => ProbeResult {
+                        probe_name,
+                        timestamp_started: triggered_at,
                         success: false,
-                        triggered_at,
                         error_message: Some(e.to_string()),
+                        response: None,
+                        trace_id: None,
                     },
                 }
             }

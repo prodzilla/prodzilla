@@ -9,10 +9,10 @@ use tracing::debug;
 
 use crate::{
     app_state::AppState,
-    probe::{model::StoryResult, probe_logic::Monitorable},
+    probe::{model::{ProbeResult, StoryResult}, probe_logic::Monitorable},
 };
 
-use super::model::{ProbeQueryParams, ProbeResponse, BulkTriggerRequest, BulkTriggerResponse, TriggerResult};
+use super::model::{ProbeQueryParams, ProbeResponse, BulkTriggerRequest, BulkTriggerResponse};
 
 // TODO: Error handling for all of the endpoints
 
@@ -136,17 +136,21 @@ pub async fn bulk_story_trigger(
             async move {
                 let triggered_at = Utc::now();
                 match story.probe_and_store_result(state_clone).await {
-                    Ok(_) => TriggerResult {
-                        name: story_name,
+                    Ok(_) => ProbeResult {
+                        probe_name: story_name,
+                        timestamp_started: triggered_at,
                         success: true,
-                        triggered_at,
                         error_message: None,
+                        response: None,
+                        trace_id: None,
                     },
-                    Err(e) => TriggerResult {
-                        name: story_name,
+                    Err(e) => ProbeResult {
+                        probe_name: story_name,
+                        timestamp_started: triggered_at,
                         success: false,
-                        triggered_at,
                         error_message: Some(e.to_string()),
+                        response: None,
+                        trace_id: None,
                     },
                 }
             }

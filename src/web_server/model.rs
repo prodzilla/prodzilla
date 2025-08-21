@@ -2,6 +2,8 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use crate::probe::model::ProbeResult;
+
 #[derive(Deserialize)]
 pub struct ProbeQueryParams {
     pub show_response: Option<bool>,
@@ -24,14 +26,6 @@ pub struct BulkTriggerRequest {
 #[derive(Debug, Serialize)]
 pub struct BulkTriggerResponse {
     pub triggered_count: usize,
-    pub results: Vec<TriggerResult>,
+    pub results: Vec<ProbeResult>,
 }
 
-#[derive(Debug, Serialize)]
-pub struct TriggerResult {
-    pub name: String,
-    pub success: bool,
-    pub triggered_at: DateTime<Utc>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub error_message: Option<String>,
-}
