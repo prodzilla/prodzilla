@@ -2,7 +2,7 @@ type FilterBarProps = {
   searchTerm: string;
   onSearchChange: (term: string) => void;
   selectedTags: string[];
-  availableTags: string[];
+  groupedTags: Record<string, string[]>;
   onTagToggle: (tag: string) => void;
   onClearFilters: () => void;
 };
@@ -11,7 +11,7 @@ export default function FilterBar({
   searchTerm,
   onSearchChange,
   selectedTags,
-  availableTags,
+  groupedTags,
   onTagToggle,
   onClearFilters,
 }: FilterBarProps) {
@@ -27,7 +27,7 @@ export default function FilterBar({
         />
       </div>
 
-      {availableTags.length > 0 && (
+      {Object.keys(groupedTags).length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-gray-800">
@@ -42,21 +42,35 @@ export default function FilterBar({
               </button>
             )}
           </div>
-          
-          <div className="flex flex-wrap gap-2">
-            {availableTags.map((tag) => (
-              <button
-                key={tag}
-                onClick={() => onTagToggle(tag)}
-                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                  selectedTags.includes(tag)
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                {tag}
-              </button>
-            ))}
+
+          <div className="space-y-3 flex flex-wrap items-center gap-2">
+            {Object.entries(groupedTags)
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([tagKey, tagValues]) => (
+                <div key={tagKey} className="bg-gray-100 p-2 rounded-lg">
+                  <span className="block text-sm font-medium text-gray-700 px-3 pb-2">
+                    {tagKey}
+                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {tagValues.map((value) => {
+                      const fullTag = `${tagKey}:${value}`;
+                      return (
+                        <button
+                          key={fullTag}
+                          onClick={() => onTagToggle(fullTag)}
+                          className={`inline-flex items-center px-3 py-1 rounded-sm text-sm font-medium transition-colors ${
+                            selectedTags.includes(fullTag)
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          }`}
+                        >
+                          {value}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
           </div>
         </div>
       )}

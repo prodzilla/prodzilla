@@ -47,3 +47,28 @@ export function getAllTags<T extends { tags?: Record<string, string> | null }>(
   
   return Array.from(tagSet).sort();
 }
+
+export function getGroupedTags<T extends { tags?: Record<string, string> | null }>(
+  items: T[]
+): Record<string, string[]> {
+  const groupedTags: Record<string, Set<string>> = {};
+  
+  items.forEach(item => {
+    if (item.tags) {
+      Object.entries(item.tags).forEach(([key, value]) => {
+        if (!groupedTags[key]) {
+          groupedTags[key] = new Set();
+        }
+        groupedTags[key].add(value);
+      });
+    }
+  });
+  
+  // Convert Sets to sorted arrays
+  const result: Record<string, string[]> = {};
+  Object.entries(groupedTags).forEach(([key, valueSet]) => {
+    result[key] = Array.from(valueSet).sort();
+  });
+  
+  return result;
+}

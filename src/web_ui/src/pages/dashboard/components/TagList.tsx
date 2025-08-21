@@ -4,7 +4,11 @@ type TagListProps = {
   clickable?: boolean;
 };
 
-export default function TagList({ tags, onTagClick, clickable = false }: TagListProps) {
+export default function TagList({
+  tags,
+  onTagClick,
+  clickable = false,
+}: TagListProps) {
   if (!tags || Object.keys(tags).length === 0) {
     return <span className="text-gray-400 text-sm">No tags</span>;
   }
@@ -12,7 +16,7 @@ export default function TagList({ tags, onTagClick, clickable = false }: TagList
   return (
     <div className="flex flex-wrap gap-1">
       {Object.entries(tags).map(([key, value]) => {
-        const tagString = `${key}:${value}`;
+        const tagString = `${key}: ${value}`;
         return (
           <span
             key={tagString}

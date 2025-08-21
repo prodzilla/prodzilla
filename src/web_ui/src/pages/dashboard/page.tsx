@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { fetchProbes, fetchStories } from '@/lib/api-client';
-import { filterByTags, searchByName, getAllTags } from '@/lib/helpers';
+import { filterByTags, searchByName, getGroupedTags } from '@/lib/helpers';
 import MonitorCard from './components/MonitorCard';
 import FilterBar from './components/FilterBar';
 
@@ -43,7 +43,7 @@ export default function Dashboard() {
     ...stories.map((s) => ({ ...s, type: 'story' as const })),
   ];
 
-  const availableTags = getAllTags(allItems);
+  const groupedTags = getGroupedTags(allItems);
 
   const filteredItems = filterByTags(
     searchByName(allItems, searchTerm),
@@ -88,7 +88,7 @@ export default function Dashboard() {
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
           selectedTags={selectedTags}
-          availableTags={availableTags}
+          groupedTags={groupedTags}
           onTagToggle={handleTagToggle}
           onClearFilters={handleClearFilters}
         />
