@@ -61,11 +61,7 @@ function DashboardContent() {
             {filteredItems.map((item) => (
               <MonitorCard
                 key={`${item.type}-${item.name}`}
-                name={item.name}
-                status={item.status}
-                last_probed={item.last_probed}
-                tags={item.tags}
-                type={item.type}
+                item={item}
               />
             ))}
           </div>
