@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { fetchProbes, fetchStories } from '../../lib/api-client';
-import { filterByTags, searchByName, getAllTags } from '../../lib/helpers';
+import { fetchProbes, fetchStories } from '@/lib/api-client';
+import { filterByTags, searchByName, getAllTags } from '@/lib/helpers';
 import MonitorCard from './components/MonitorCard';
 import FilterBar from './components/FilterBar';
 
@@ -19,11 +19,12 @@ export default function Dashboard() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   useEffect(() => {
+    console.log('fetching probes and stories');
     const loadData = async () => {
       try {
         const [probesData, storiesData] = await Promise.all([
           fetchProbes(),
-          fetchStories()
+          fetchStories(),
         ]);
         setProbes(probesData);
         setStories(storiesData);
@@ -38,28 +39,26 @@ export default function Dashboard() {
   }, []);
 
   const allItems = [
-    ...probes.map(p => ({ ...p, type: 'probe' as const })),
-    ...stories.map(s => ({ ...s, type: 'story' as const }))
+    ...probes.map((p) => ({ ...p, type: 'probe' as const })),
+    ...stories.map((s) => ({ ...s, type: 'story' as const })),
   ];
 
   const availableTags = getAllTags(allItems);
-  
+
   const filteredItems = filterByTags(
     searchByName(allItems, searchTerm),
     selectedTags
   );
 
   const handleTagToggle = (tag: string) => {
-    setSelectedTags(prev => 
-      prev.includes(tag) 
-        ? prev.filter(t => t !== tag)
-        : [...prev, tag]
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     );
   };
 
   const handleTagClick = (tag: string) => {
     if (!selectedTags.includes(tag)) {
-      setSelectedTags(prev => [...prev, tag]);
+      setSelectedTags((prev) => [...prev, tag]);
     }
   };
 
@@ -100,15 +99,14 @@ export default function Dashboard() {
         {filteredItems.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-gray-500 text-lg">
-              {allItems.length === 0 
-                ? 'No monitors configured' 
-                : 'No monitors match your filters'
-              }
+              {allItems.length === 0
+                ? 'No monitors configured'
+                : 'No monitors match your filters'}
             </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredItems.map(item => (
+            {filteredItems.map((item) => (
               <MonitorCard
                 key={`${item.type}-${item.name}`}
                 name={item.name}
