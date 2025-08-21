@@ -88,8 +88,8 @@ pub async fn story_trigger(
 }
 
 pub async fn bulk_story_trigger(
-    Json(request): Json<BulkTriggerRequest>,
     Extension(state): Extension<Arc<AppState>>,
+    Json(request): Json<BulkTriggerRequest>,
 ) -> Json<BulkTriggerResponse> {
     debug!("Bulk story trigger called with tags: {:?}", request.tags);
 
@@ -120,7 +120,7 @@ pub async fn bulk_story_trigger(
             let story_name = story.name.clone();
             let state_clone = state.clone();
             async move {
-                story.probe_and_store_result(state_clone).await;
+                story.probe_and_store_result(state_clone.clone()).await;
                 let lock = state_clone.story_results.read().unwrap();
                 let story_result = lock.get(&story_name).unwrap().last().unwrap().clone();
                 

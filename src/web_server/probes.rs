@@ -79,8 +79,8 @@ pub async fn probe_trigger(
 }
 
 pub async fn bulk_probe_trigger(
-    Json(request): Json<BulkTriggerRequest>,
     Extension(state): Extension<Arc<AppState>>,
+    Json(request): Json<BulkTriggerRequest>,
 ) -> Json<BulkTriggerResponse> {
     debug!("Bulk probe trigger called with tags: {:?}", request.tags);
 
@@ -111,7 +111,7 @@ pub async fn bulk_probe_trigger(
             let probe_name = probe.name.clone();
             let state_clone = state.clone();
             async move {
-                probe.probe_and_store_result(state_clone).await;
+                probe.probe_and_store_result(state_clone.clone()).await;
                 let lock = state_clone.probe_results.read().unwrap();
                 lock.get(&probe_name).unwrap().last().unwrap().clone()
             }

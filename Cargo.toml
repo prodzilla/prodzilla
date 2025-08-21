@@ -6,7 +6,7 @@ version = "0.0.5"
 edition = "2021"
 
 [dependencies]
-axum = { version = "0.7.2" }
+axum = { version = "0.7.3" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.68"
 serde_yaml = "0.9"
