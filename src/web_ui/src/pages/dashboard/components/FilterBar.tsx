@@ -13,7 +13,7 @@ export default function FilterBar({
   selectedTags,
   availableTags,
   onTagToggle,
-  onClearFilters
+  onClearFilters,
 }: FilterBarProps) {
   return (
     <div className="bg-white rounded-lg shadow p-4 mb-6">
@@ -21,15 +21,17 @@ export default function FilterBar({
         <div className="flex-1">
           <input
             type="text"
-            placeholder="Search by name..."
+            placeholder="Filter by name..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
-        
+
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-700">Filter by tags:</span>
+          <span className="text-sm font-medium text-gray-700">
+            Filter by tags:
+          </span>
           {selectedTags.length > 0 && (
             <button
               onClick={onClearFilters}
@@ -40,11 +42,11 @@ export default function FilterBar({
           )}
         </div>
       </div>
-      
+
       {availableTags.length > 0 && (
         <div className="mt-4">
           <div className="flex flex-wrap gap-2">
-            {availableTags.map(tag => (
+            {availableTags.map((tag) => (
               <button
                 key={tag}
                 onClick={() => onTagToggle(tag)}

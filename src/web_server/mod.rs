@@ -9,11 +9,17 @@ use crate::web_server::{
 };
 use axum::{routing::get, Extension, Router};
 use std::{env, sync::Arc};
+use tower_http::cors::{Any, CorsLayer};
 use tracing::{debug, info};
 
 use crate::app_state::AppState;
 
 pub async fn start_axum_server(app_state: Arc<AppState>) {
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
+
     let app = Router::new()
         .route("/", get(root))
         .route("/probes", get(probes))
@@ -22,7 +28,8 @@ pub async fn start_axum_server(app_state: Arc<AppState>) {
         .route("/stories", get(stories))
         .route("/stories/:name/results", get(get_story_results))
         .route("/stories/:name/trigger", get(story_trigger))
-        .layer(Extension(app_state.clone()));
+        .layer(Extension(app_state.clone()))
+        .layer(cors);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
         .await
