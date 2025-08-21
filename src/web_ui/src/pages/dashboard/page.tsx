@@ -1,14 +1,25 @@
 import { useState, useEffect } from 'react';
-import { fetchProbes, fetchStories } from '@/lib/api-client';
+import {
+  fetchProbes,
+  fetchStories,
+  fetchProbeResults,
+  fetchStoryResults,
+} from '@/lib/api-client';
 import { filterByTags, searchByName, getGroupedTags } from '@/lib/helpers';
 import MonitorCard from './components/MonitorCard';
 import FilterBar from './components/FilterBar';
+import ResultsSidebar from './components/ResultsSidebar';
 
 type MonitorItem = {
   name: string;
   status: string;
   last_probed: string;
   tags?: Record<string, string> | null;
+};
+
+type SelectedMonitor = {
+  name: string;
+  type: 'probe' | 'story';
 };
 
 export default function Dashboard() {
@@ -18,8 +29,15 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
+  // Sidebar state
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedMonitor, setSelectedMonitor] =
+    useState<SelectedMonitor | null>(null);
+  const [results, setResults] = useState<any[] | null>(null);
+  const [resultsLoading, setResultsLoading] = useState(false);
+  const [resultsError, setResultsError] = useState<string | null>(null);
+
   useEffect(() => {
-    console.log('fetching probes and stories');
     const loadData = async () => {
       try {
         const [probesData, storiesData] = await Promise.all([
@@ -56,15 +74,37 @@ export default function Dashboard() {
     );
   };
 
-  const handleTagClick = (tag: string) => {
-    if (!selectedTags.includes(tag)) {
-      setSelectedTags((prev) => [...prev, tag]);
-    }
-  };
-
   const handleClearFilters = () => {
     setSearchTerm('');
     setSelectedTags([]);
+  };
+
+  const handleMonitorClick = async (name: string, type: 'probe' | 'story') => {
+    setSelectedMonitor({ name, type });
+    setSidebarOpen(true);
+    setResultsLoading(true);
+    setResultsError(null);
+    setResults(null);
+
+    try {
+      const data =
+        type === 'probe'
+          ? await fetchProbeResults(name)
+          : await fetchStoryResults(name);
+      setResults(data);
+    } catch (error) {
+      setResultsError('Failed to fetch results');
+      console.error('Error fetching results:', error);
+    } finally {
+      setResultsLoading(false);
+    }
+  };
+
+  const handleCloseSidebar = () => {
+    setSidebarOpen(false);
+    setSelectedMonitor(null);
+    setResults(null);
+    setResultsError(null);
   };
 
   if (loading) {
@@ -121,12 +161,22 @@ export default function Dashboard() {
                 last_probed={item.last_probed}
                 tags={item.tags}
                 type={item.type}
-                onTagClick={handleTagClick}
+                onTagClick={handleTagToggle}
+                onClick={() => handleMonitorClick(item.name, item.type)}
               />
             ))}
           </div>
         )}
       </div>
+
+      <ResultsSidebar
+        isOpen={sidebarOpen}
+        onClose={handleCloseSidebar}
+        selectedMonitor={selectedMonitor}
+        results={results}
+        loading={resultsLoading}
+        error={resultsError}
+      />
     </div>
   );
 }

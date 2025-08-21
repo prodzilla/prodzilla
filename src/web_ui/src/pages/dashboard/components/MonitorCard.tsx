@@ -9,6 +9,7 @@ type MonitorCardProps = {
   tags?: Record<string, string> | null;
   type: 'probe' | 'story';
   onTagClick?: (tag: string) => void;
+  onClick?: () => void;
 };
 
 export default function MonitorCard({ 
@@ -17,10 +18,16 @@ export default function MonitorCard({
   last_probed, 
   tags, 
   type,
-  onTagClick 
+  onTagClick,
+  onClick
 }: MonitorCardProps) {
   return (
-    <div className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow">
+    <div 
+      className={`bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow ${
+        onClick ? 'cursor-pointer hover:shadow-lg' : ''
+      }`}
+      onClick={onClick}
+    >
       <div className="flex items-start justify-between mb-2">
         <h3 className="text-lg font-semibold text-gray-900">{name}</h3>
         <div className="flex items-center gap-2">
@@ -33,7 +40,9 @@ export default function MonitorCard({
         Last probed: {formatDateTime(last_probed)}
       </div>
       
-      <TagList tags={tags} onTagClick={onTagClick} clickable={!!onTagClick} />
+      <div onClick={(e) => e.stopPropagation()}>
+        <TagList tags={tags} onTagClick={onTagClick} clickable={!!onTagClick} />
+      </div>
     </div>
   );
 }

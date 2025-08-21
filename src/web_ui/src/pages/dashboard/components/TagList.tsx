@@ -16,7 +16,7 @@ export default function TagList({
   return (
     <div className="flex flex-wrap gap-1">
       {Object.entries(tags).map(([key, value]) => {
-        const tagString = `${key}: ${value}`;
+        const tagString = `${key}:${value}`;
         return (
           <span
             key={tagString}
@@ -25,7 +25,7 @@ export default function TagList({
               clickable ? 'cursor-pointer hover:bg-blue-200' : ''
             }`}
           >
-            {tagString}
+            {`${key}: ${value}`}
           </span>
         );
       })}
