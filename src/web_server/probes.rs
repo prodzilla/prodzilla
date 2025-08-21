@@ -2,6 +2,8 @@ use axum::{
     extract::{Path, Query},
     Extension, Json,
 };
+use chrono::Utc;
+use futures::future::join_all;
 use std::sync::Arc;
 use tracing::debug;
 
@@ -10,7 +12,7 @@ use crate::{
     probe::{model::ProbeResult, probe_logic::Monitorable},
 };
 
-use super::model::{ProbeQueryParams, ProbeResponse};
+use super::model::{ProbeQueryParams, ProbeResponse, BulkTriggerRequest, BulkTriggerResponse, TriggerResult};
 
 pub async fn get_probe_results(
     Path(name): Path<String>,
@@ -75,4 +77,78 @@ pub async fn probe_trigger(
     let probe_results = lock.get(&name).unwrap();
 
     Json(probe_results.last().unwrap().clone())
+}
+
+pub async fn bulk_probe_trigger(
+    Json(request): Json<BulkTriggerRequest>,
+    Extension(state): Extension<Arc<AppState>>,
+) -> Json<BulkTriggerResponse> {
+    debug!("Bulk probe trigger called with tags: {:?}", request.tags);
+
+    // Filter probes based on tags
+    let probes_to_trigger: Vec<_> = if request.tags.is_empty() {
+        // Trigger all probes if no tags specified
+        state.config.probes.iter().collect()
+    } else {
+        // Parse requested tags into key:value pairs
+        let requested_tags: Vec<(String, String)> = request.tags
+            .iter()
+            .filter_map(|tag| {
+                let parts: Vec<&str> = tag.splitn(2, ':').collect();
+                if parts.len() == 2 {
+                    Some((parts[0].to_string(), parts[1].to_string()))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        // Filter probes that have any of the requested tags
+        state.config.probes
+            .iter()
+            .filter(|probe| {
+                if let Some(probe_tags) = &probe.tags {
+                    requested_tags.iter().any(|(key, value)| {
+                        probe_tags.get(key).map_or(false, |v| v == value)
+                    })
+                } else {
+                    false
+                }
+            })
+            .collect()
+    };
+
+    // Execute probes in parallel
+    let trigger_futures: Vec<_> = probes_to_trigger
+        .iter()
+        .map(|probe| {
+            let probe_name = probe.name.clone();
+            let state_clone = state.clone();
+            async move {
+                let triggered_at = Utc::now();
+                match probe.probe_and_store_result(state_clone).await {
+                    Ok(_) => TriggerResult {
+                        name: probe_name,
+                        success: true,
+                        triggered_at,
+                        error_message: None,
+                    },
+                    Err(e) => TriggerResult {
+                        name: probe_name,
+                        success: false,
+                        triggered_at,
+                        error_message: Some(e.to_string()),
+                    },
+                }
+            }
+        })
+        .collect();
+
+    let results = join_all(trigger_futures).await;
+    let triggered_count = results.len();
+
+    Json(BulkTriggerResponse {
+        triggered_count,
+        results,
+    })
 }

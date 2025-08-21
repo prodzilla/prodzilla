@@ -2,6 +2,8 @@ use axum::{
     extract::{Path, Query},
     Extension, Json,
 };
+use chrono::Utc;
+use futures::future::join_all;
 use std::sync::Arc;
 use tracing::debug;
 
@@ -10,7 +12,7 @@ use crate::{
     probe::{model::StoryResult, probe_logic::Monitorable},
 };
 
-use super::model::{ProbeQueryParams, ProbeResponse};
+use super::model::{ProbeQueryParams, ProbeResponse, BulkTriggerRequest, BulkTriggerResponse, TriggerResult};
 
 // TODO: Error handling for all of the endpoints
 
@@ -84,4 +86,78 @@ pub async fn story_trigger(
     let story_results = lock.get(&name).unwrap();
 
     Json(story_results.last().unwrap().clone())
+}
+
+pub async fn bulk_story_trigger(
+    Json(request): Json<BulkTriggerRequest>,
+    Extension(state): Extension<Arc<AppState>>,
+) -> Json<BulkTriggerResponse> {
+    debug!("Bulk story trigger called with tags: {:?}", request.tags);
+
+    // Filter stories based on tags
+    let stories_to_trigger: Vec<_> = if request.tags.is_empty() {
+        // Trigger all stories if no tags specified
+        state.config.stories.iter().collect()
+    } else {
+        // Parse requested tags into key:value pairs
+        let requested_tags: Vec<(String, String)> = request.tags
+            .iter()
+            .filter_map(|tag| {
+                let parts: Vec<&str> = tag.splitn(2, ':').collect();
+                if parts.len() == 2 {
+                    Some((parts[0].to_string(), parts[1].to_string()))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        // Filter stories that have any of the requested tags
+        state.config.stories
+            .iter()
+            .filter(|story| {
+                if let Some(story_tags) = &story.tags {
+                    requested_tags.iter().any(|(key, value)| {
+                        story_tags.get(key).map_or(false, |v| v == value)
+                    })
+                } else {
+                    false
+                }
+            })
+            .collect()
+    };
+
+    // Execute stories in parallel
+    let trigger_futures: Vec<_> = stories_to_trigger
+        .iter()
+        .map(|story| {
+            let story_name = story.name.clone();
+            let state_clone = state.clone();
+            async move {
+                let triggered_at = Utc::now();
+                match story.probe_and_store_result(state_clone).await {
+                    Ok(_) => TriggerResult {
+                        name: story_name,
+                        success: true,
+                        triggered_at,
+                        error_message: None,
+                    },
+                    Err(e) => TriggerResult {
+                        name: story_name,
+                        success: false,
+                        triggered_at,
+                        error_message: Some(e.to_string()),
+                    },
+                }
+            }
+        })
+        .collect();
+
+    let results = join_all(trigger_futures).await;
+    let triggered_count = results.len();
+
+    Json(BulkTriggerResponse {
+        triggered_count,
+        results,
+    })
 }
