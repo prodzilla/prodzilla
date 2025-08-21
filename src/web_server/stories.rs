@@ -2,7 +2,6 @@ use axum::{
     extract::{Path, Query},
     Extension, Json,
 };
-use chrono::Utc;
 use futures::future::join_all;
 use std::sync::Arc;
 use tracing::debug;
@@ -121,24 +120,18 @@ pub async fn bulk_story_trigger(
             let story_name = story.name.clone();
             let state_clone = state.clone();
             async move {
-                let triggered_at = Utc::now();
-                match story.probe_and_store_result(state_clone).await {
-                    Ok(_) => ProbeResult {
-                        probe_name: story_name,
-                        timestamp_started: triggered_at,
-                        success: true,
-                        error_message: None,
-                        response: None,
-                        trace_id: None,
-                    },
-                    Err(e) => ProbeResult {
-                        probe_name: story_name,
-                        timestamp_started: triggered_at,
-                        success: false,
-                        error_message: Some(e.to_string()),
-                        response: None,
-                        trace_id: None,
-                    },
+                story.probe_and_store_result(state_clone).await;
+                let lock = state_clone.story_results.read().unwrap();
+                let story_result = lock.get(&story_name).unwrap().last().unwrap().clone();
+                
+                // Convert StoryResult to ProbeResult for unified response format
+                ProbeResult {
+                    probe_name: story_result.story_name,
+                    timestamp_started: story_result.timestamp_started,
+                    success: story_result.success,
+                    error_message: None,
+                    response: None,
+                    trace_id: None,
                 }
             }
         })
