@@ -82,9 +82,6 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Prodzilla Dashboard
           </h1>
-          <p className="text-gray-600">
-            Monitor your probes and stories - {allItems.length} total monitors
-          </p>
         </div>
 
         <FilterBar
@@ -95,6 +92,16 @@ export default function Dashboard() {
           onTagToggle={handleTagToggle}
           onClearFilters={handleClearFilters}
         />
+
+        <div className="mb-6 text-gray-600">
+          {filteredItems.length === allItems.length ? (
+            <span>Showing all {allItems.length} monitors</span>
+          ) : (
+            <span>
+              Showing {filteredItems.length} of {allItems.length} monitors
+            </span>
+          )}
+        </div>
 
         {filteredItems.length === 0 ? (
           <div className="text-center py-12">

@@ -17,34 +17,32 @@ export default function FilterBar({
 }: FilterBarProps) {
   return (
     <div className="bg-white rounded-lg shadow p-4 mb-6">
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="flex-1">
-          <input
-            type="text"
-            placeholder="Filter by name..."
-            value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-700">
-            Filter by tags:
-          </span>
-          {selectedTags.length > 0 && (
-            <button
-              onClick={onClearFilters}
-              className="text-sm text-red-600 hover:text-red-800"
-            >
-              Clear filters
-            </button>
-          )}
-        </div>
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Search monitors by name..."
+          value={searchTerm}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
       </div>
 
       {availableTags.length > 0 && (
-        <div className="mt-4">
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-gray-800">
+              Refine by Tags
+            </span>
+            {selectedTags.length > 0 && (
+              <button
+                onClick={onClearFilters}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              >
+                Clear All Filters
+              </button>
+            )}
+          </div>
+          
           <div className="flex flex-wrap gap-2">
             {availableTags.map((tag) => (
               <button
