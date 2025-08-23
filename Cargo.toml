@@ -34,4 +34,4 @@ clap = { version = "4.5.4", features = ["derive"] }
 opentelemetry-stdout = { version = "0.4.0", features = ["metrics", "trace"] }
 opentelemetry-prometheus = "0.16.0"
 prometheus = "0.13.4"
-tower-http = { version = "0.5", features = ["cors"] }
+tower-http = { version = "0.5", features = ["cors", "fs"] }
