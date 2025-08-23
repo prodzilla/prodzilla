@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-ARG RUST_VERSION=1.78
+ARG RUST_VERSION=1.82
 
 FROM rust:${RUST_VERSION}-slim-bookworm AS build
 

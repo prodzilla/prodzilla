@@ -2,6 +2,7 @@ use axum::{
     extract::{Path, Query},
     Extension, Json,
 };
+use futures::future::join_all;
 use std::sync::Arc;
 use tracing::debug;
 
@@ -10,7 +11,7 @@ use crate::{
     probe::{model::ProbeResult, probe_logic::Monitorable},
 };
 
-use super::model::{ProbeQueryParams, ProbeResponse};
+use super::model::{ProbeQueryParams, ProbeResponse, BulkTriggerRequest, BulkProbeTriggerResponse};
 
 pub async fn get_probe_results(
     Path(name): Path<String>,
@@ -75,4 +76,49 @@ pub async fn probe_trigger(
     let probe_results = lock.get(&name).unwrap();
 
     Json(probe_results.last().unwrap().clone())
+}
+
+pub async fn bulk_probe_trigger(
+    Extension(state): Extension<Arc<AppState>>,
+    Json(request): Json<BulkTriggerRequest>,
+) -> Json<BulkProbeTriggerResponse> {
+    let probes_to_trigger: Vec<_> = if request.tags.is_empty() {
+        state.config.probes.iter().collect()
+    } else {
+        // Filter probes that have all of the requested tags
+        state.config.probes
+            .iter()
+            .filter(|probe| {
+                if let Some(probe_tags) = &probe.tags {
+                    request.tags.iter().all(|(key, value)| {
+                        probe_tags.get(key).map_or(false, |v| v == value)
+                    })
+                } else {
+                    false
+                }
+            })
+            .collect()
+    };
+
+    // Execute probes in parallel
+    let trigger_futures: Vec<_> = probes_to_trigger
+        .iter()
+        .map(|probe| {
+            let probe_name = probe.name.clone();
+            let state_clone = state.clone();
+            async move {
+                probe.probe_and_store_result(state_clone.clone()).await;
+                let lock = state_clone.probe_results.read().unwrap();
+                lock.get(&probe_name).unwrap().last().unwrap().clone()
+            }
+        })
+        .collect();
+
+    let results = join_all(trigger_futures).await;
+    let triggered_count = results.len();
+
+    Json(BulkProbeTriggerResponse {
+        triggered_count,
+        results,
+    })
 }

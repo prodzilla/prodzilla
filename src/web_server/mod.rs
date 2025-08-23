@@ -4,25 +4,34 @@ mod prometheus_metrics;
 mod stories;
 
 use crate::web_server::{
-    probes::{get_probe_results, probe_trigger, probes},
-    stories::{get_story_results, stories, story_trigger},
+    probes::{bulk_probe_trigger, get_probe_results, probe_trigger, probes},
+    stories::{bulk_story_trigger, get_story_results, stories, story_trigger},
 };
-use axum::{routing::get, Extension, Router};
+use axum::{routing::{get, post}, Extension, Router};
 use std::{env, sync::Arc};
+use tower_http::cors::{Any, CorsLayer};
 use tracing::{debug, info};
 
 use crate::app_state::AppState;
 
 pub async fn start_axum_server(app_state: Arc<AppState>) {
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
+
     let app = Router::new()
         .route("/", get(root))
         .route("/probes", get(probes))
         .route("/probes/:name/results", get(get_probe_results))
         .route("/probes/:name/trigger", get(probe_trigger))
+        .route("/probes/bulk/trigger", post(bulk_probe_trigger))
         .route("/stories", get(stories))
         .route("/stories/:name/results", get(get_story_results))
         .route("/stories/:name/trigger", get(story_trigger))
-        .layer(Extension(app_state.clone()));
+        .route("/stories/bulk/trigger", post(bulk_story_trigger))
+        .layer(Extension(app_state.clone()))
+        .layer(cors);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
 
