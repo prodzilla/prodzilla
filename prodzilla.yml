@@ -12,3 +12,68 @@ probes:
     alerts:
       - url: https://discord.com/api/webhooks/1431818669641699350/GL6apti2l6RZGWZhi6gsw4hR35c3yRUUKjxqPN69ZF-G0nMP768WpX8oMR4DQnMzzilU
 
+  - name: aurora-suitsbooks-com
+    url:	https://aurora.suitsbooks.com
+    http_method: GET
+    expectations:
+      - field: StatusCode
+        operation: Equals 
+        value: "200"
+    schedule:
+      initial_delay: 0
+      interval: 30
+    alerts:
+      - url: https://discord.com/api/webhooks/1431818669641699350/GL6apti2l6RZGWZhi6gsw4hR35c3yRUUKjxqPN69ZF-G0nMP768WpX8oMR4DQnMzzilU
+
+  - name: stargate-xbp-app
+    url:	https://stargate.xbp.app
+    http_method: GET
+    expectations:
+      - field: StatusCode
+        operation: Equals 
+        value: "200"
+    schedule:
+      initial_delay: 0
+      interval: 30
+    alerts:
+      - url: https://discord.com/api/webhooks/1431818669641699350/GL6apti2l6RZGWZhi6gsw4hR35c3yRUUKjxqPN69ZF-G0nMP768WpX8oMR4DQnMzzilU
+
+  - name: api-suitsbooks-com
+    url:	https://api.suitsbooks.com
+    http_method: GET
+    expectations:
+      - field: StatusCode
+        operation: Equals 
+        value: "200"
+    schedule:
+      initial_delay: 0
+      interval: 30
+    alerts:
+      - url: https://discord.com/api/webhooks/1431818669641699350/GL6apti2l6RZGWZhi6gsw4hR35c3yRUUKjxqPN69ZF-G0nMP768WpX8oMR4DQnMzzilU
+
+  - name: connect-suits-finance
+    url:	https://connect.suits.finance
+    http_method: GET
+    expectations:
+      - field: StatusCode
+        operation: Equals 
+        value: "200"
+    schedule:
+      initial_delay: 0
+      interval: 30
+    alerts:
+      - url: https://discord.com/api/webhooks/1431818669641699350/GL6apti2l6RZGWZhi6gsw4hR35c3yRUUKjxqPN69ZF-G0nMP768WpX8oMR4DQnMzzilU
+
+  - name: api-xbp-app
+    url:	https://api.xbp.app
+    http_method: GET
+    expectations:
+      - field: StatusCode
+        operation: Equals 
+        value: "200"
+    schedule:
+      initial_delay: 0
+      interval: 30
+    alerts:
+      - url: https://discord.com/api/webhooks/1431818669641699350/GL6apti2l6RZGWZhi6gsw4hR35c3yRUUKjxqPN69ZF-G0nMP768WpX8oMR4DQnMzzilU
+
