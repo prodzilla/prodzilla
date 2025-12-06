@@ -2,6 +2,7 @@ use axum::{
     extract::{Path, Query},
     Extension, Json,
 };
+use futures::future::join_all;
 use std::sync::Arc;
 use tracing::debug;
 
@@ -10,7 +11,7 @@ use crate::{
     probe::{model::StoryResult, probe_logic::Monitorable},
 };
 
-use super::model::{ProbeQueryParams, ProbeResponse};
+use super::model::{ProbeQueryParams, ProbeResponse, BulkTriggerRequest, BulkStoryTriggerResponse};
 
 // TODO: Error handling for all of the endpoints
 
@@ -50,10 +51,15 @@ pub async fn stories(Extension(state): Extension<Arc<AppState>>) -> Json<Vec<Pro
         let last = value.last().unwrap();
         let status = if last.success { "OK" } else { "FAILING" };
 
+        // Find the corresponding story config to get tags
+        let story_config = state.config.stories.iter().find(|s| s.name == *key);
+        let tags = story_config.and_then(|s| s.tags.clone());
+
         stories.push(ProbeResponse {
             name: key.clone(),
             status: status.to_owned(),
             last_probed: last.timestamp_started,
+            tags,
         })
     }
 
@@ -79,4 +85,49 @@ pub async fn story_trigger(
     let story_results = lock.get(&name).unwrap();
 
     Json(story_results.last().unwrap().clone())
+}
+
+pub async fn bulk_story_trigger(
+    Extension(state): Extension<Arc<AppState>>,
+    Json(request): Json<BulkTriggerRequest>,
+) -> Json<BulkStoryTriggerResponse> {
+    let stories_to_trigger: Vec<_> = if request.tags.is_empty() {
+        state.config.stories.iter().collect()
+    } else {
+        // Filter stories that have all of the requested tags
+        state.config.stories
+            .iter()
+            .filter(|story| {
+                if let Some(story_tags) = &story.tags {
+                    request.tags.iter().all(|(key, value)| {
+                        story_tags.get(key).map_or(false, |v| v == value)
+                    })
+                } else {
+                    false
+                }
+            })
+            .collect()
+    };
+
+    // Execute stories in parallel
+    let trigger_futures: Vec<_> = stories_to_trigger
+        .iter()
+        .map(|story| {
+            let story_name = story.name.clone();
+            let state_clone = state.clone();
+            async move {
+                story.probe_and_store_result(state_clone.clone()).await;
+                let lock = state_clone.story_results.read().unwrap();
+                lock.get(&story_name).unwrap().last().unwrap().clone()
+            }
+        })
+        .collect();
+
+    let results = join_all(trigger_futures).await;
+    let triggered_count = results.len();
+
+    Json(BulkStoryTriggerResponse {
+        triggered_count,
+        results,
+    })
 }
