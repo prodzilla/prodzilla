@@ -96,7 +96,7 @@ prodzilla.exe --file prodzilla.yml
 
 ### Configuration
 
-The application parses the [prodzilla.yml](/prodzilla.yml) file to generate a list of probes executed on a given schedule, and decide how to alert. Other configuration file paths can be selected using the `-f` flag. Execute `cargo run -- --help` or `prodzilla --help` to see a full list of configuration flags.
+The application parses the [prodzilla.yml](/prodzilla.yml) file to generate a list of probes executed on a given schedule, and decide how to alert. Other configuration file paths can be selected using the `-f` or `--file` flag. Execute `cargo run -- --help` or `prodzilla --help` to see a full list of configuration flags.
 
 The bare minimum config required is:
 
