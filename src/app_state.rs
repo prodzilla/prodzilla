@@ -6,12 +6,13 @@ use crate::{
     probe::model::{ProbeResult, StoryResult},
 };
 
-// Limits the number of results we store per probe. Once we go over this amount we remove the earliest.
+// Limits the number of results we store per monitor. Once we go over this amount we remove the earliest.
 const PROBE_RESULT_LIMIT: usize = 100;
 
 pub struct AppState {
     pub probe_results: RwLock<HashMap<String, Vec<ProbeResult>>>,
     pub story_results: RwLock<HashMap<String, Vec<StoryResult>>>,
+    // For monitors, we store results in the same maps as probes/stories based on type
     pub config: Config,
     pub metrics: Metrics,
 }

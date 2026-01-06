@@ -3,11 +3,27 @@ use std::sync::Arc;
 use tokio::time::Instant;
 use tracing::info;
 
-use crate::probe::model::Probe;
+use crate::probe::model::{Monitor, Probe};
 use crate::probe::probe_logic::Monitorable;
 use crate::AppState;
 
 use super::model::Story;
+
+pub fn schedule_monitors(monitors: &[Monitor], app_state: Arc<AppState>) {
+    for monitor in monitors {
+        let monitor_clone = monitor.clone();
+        let task_state = app_state.clone();
+        tokio::spawn(async move {
+            if monitor_clone.is_single_step() {
+                if let Some(probe) = monitor_clone.to_probe() {
+                    probing_loop(&probe, task_state).await;
+                }
+            } else if let Some(story) = monitor_clone.to_story() {
+                probing_loop(&story, task_state).await;
+            }
+        });
+    }
+}
 
 // TODO: Can update these signatures to just use app_state
 pub fn schedule_probes(probes: &Vec<Probe>, app_state: Arc<AppState>) {
@@ -97,6 +113,7 @@ mod schedule_tests {
         );
 
         let config = Config {
+            monitors: vec![],
             probes: vec![probe],
             stories: vec![],
         };
@@ -132,6 +149,7 @@ mod schedule_tests {
         );
 
         let config = Config {
+            monitors: vec![],
             probes: vec![probe],
             stories: vec![],
         };

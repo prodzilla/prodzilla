@@ -1,9 +1,11 @@
 mod model;
+mod monitors;
 mod probes;
 mod prometheus_metrics;
 mod stories;
 
 use crate::web_server::{
+    monitors::{get_monitor_results, monitor_trigger, monitors},
     probes::{get_probe_results, probe_trigger, probes},
     stories::{get_story_results, stories, story_trigger},
 };
@@ -16,6 +18,11 @@ use crate::app_state::AppState;
 pub async fn start_axum_server(app_state: Arc<AppState>) {
     let app = Router::new()
         .route("/", get(root))
+        // New unified monitor routes
+        .route("/monitors", get(monitors))
+        .route("/monitors/:name/results", get(get_monitor_results))
+        .route("/monitors/:name/trigger", get(monitor_trigger))
+        // Legacy routes for backward compatibility
         .route("/probes", get(probes))
         .route("/probes/:name/results", get(get_probe_results))
         .route("/probes/:name/trigger", get(probe_trigger))

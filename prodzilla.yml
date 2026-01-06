@@ -1,4 +1,4 @@
-probes:
+monitors:
   - name: your-post
     url: https://your.site/some/path
     http_method: POST
@@ -20,7 +20,6 @@ probes:
       component: super-critical-component
       owner: team
 
-stories:
   - name: get-ip-user-flow
     steps:
       - name: get-ip

@@ -382,6 +382,7 @@ mod probe_logic_tests {
         let step2_path = "/test2";
         let story_name = "User Flow";
         let app_state = Arc::new(AppState::new(Config {
+            monitors: vec![],
             probes: vec![],
             stories: vec![],
         }));
@@ -446,6 +447,7 @@ mod probe_logic_tests {
         let alert_path = "/alert-test";
         let story_name = "User Flow";
         let app_state = Arc::new(AppState::new(Config {
+            monitors: vec![],
             probes: vec![],
             stories: vec![],
         }));
@@ -527,6 +529,7 @@ mod probe_logic_tests {
 
         let story_name = "User Flow";
         let app_state = Arc::new(AppState::new(Config {
+            monitors: vec![],
             probes: vec![],
             stories: vec![],
         }));
