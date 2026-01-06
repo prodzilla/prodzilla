@@ -14,6 +14,8 @@ The long-term goals of Prodzilla are:
 
 To be part of the community, or for any questions, join our [Discord](https://discord.gg/ud55NhraUm) or get in touch at [prodzilla.io](https://prodzilla.io/).
 
+> **For AI Agents & Contributors**: See [AGENTS.md](AGENTS.md) for comprehensive development guidelines, architecture details, and contribution instructions specifically designed for AI assistants and developers.
+
 ## Table of Contents
 
 - [Table of Contents](#table-of-contents)
