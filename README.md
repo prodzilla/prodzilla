@@ -19,15 +19,15 @@ To be part of the community, or for any questions, join our [Discord](https://di
 - [Table of Contents](#table-of-contents)
 - [Getting Started](#getting-started)
 - [Configuring Synthetic Monitors](#configuring-synthetic-monitors)
-  - [Probes](#probes)
-  - [Stories](#stories)
+  - [Single-Step Monitors](#single-step-monitors)
+  - [Multi-Step Monitors](#multi-step-monitors)
   - [Variables](#variables)
   - [Expectations](#expectations)
 - [Notifications for Failures](#notifications-for-failures)
 - [Prodzilla Server Endpoints](#prodzilla-server-endpoints)
-  - [Get Probes and Stories](#get-probes-and-stories)
-  - [Get Probe and Story Results](#get-probe-and-story-results)
-  - [Trigger Probe or Story (In Development)](#trigger-probe-or-story-in-development)
+  - [Get Monitors](#get-monitors)
+  - [Get Monitor Results](#get-monitor-results)
+  - [Trigger Monitor](#trigger-monitor)
 - [Monitoring Prodzilla](#monitoring-prodzilla)
   - [Tracked metrics](#tracked-metrics)
   - [Traces](#traces)
@@ -51,13 +51,13 @@ You can also use Docker, as Prodzilla is published to `prodzilla/prodzilla`:
 docker run -v $(pwd)/prodzilla.yml:/prodzilla.yml prodzilla/prodzilla:latest
 ```
 
-The application parses the [prodzilla.yml](/prodzilla.yml) file to generate a list of probes executed on a given schedule, and decide how to alert. Other configuration file paths can be selected using the `-f` flag. Execute `cargo run -- --help` or `prodzilla --help` to see a full list of configuration flags.
+The application parses the [prodzilla.yml](/prodzilla.yml) file to generate a list of monitors executed on a given schedule, and decide how to alert. Other configuration file paths can be selected using the `-f` flag. Execute `cargo run -- --help` or `prodzilla --help` to see a full list of configuration flags.
 
 The bare minimum config required is:
 
 ```yaml
-probes:
-  - name: Your Probe Name
+monitors:
+  - name: Your Monitor Name
     url: https://yoururl.com/some/path
     http_method: GET
     schedule:
@@ -67,45 +67,48 @@ probes:
 
 ## Configuring Synthetic Monitors
 
-Prodzilla offers two ways to check live endpoints, Probes and Stories.
+Prodzilla uses a unified `monitors` configuration that supports both single-step tests and multi-step user flows.
 
-### Probes
+### Single-Step Monitors
 
-Probes define a single endpoint to be called with given parameters, and assert the response is as expected. This is a traditional synthetic monitor.
+Single-step monitors (formerly "probes") define a single endpoint to be called with given parameters, and assert the response is as expected. This is a traditional synthetic monitor.
 
-A complete Probe config looks as follows:
+A complete single-step monitor config looks as follows:
 
 ```yaml
-- name: Your Post Url
-  url: https://your.site/some/path
-  http_method: POST
-  sensitive: false
-  with:
-    headers:
-      x-client-id: ClientId
-    body: '"{"test": true}"'
-    timeout_seconds: 10
-  expectations:
-    - field: StatusCode
-      operation: Equals
-      value: "200"
-  schedule:
-    initial_delay: 2
-    interval: 60
-  alerts:
-    - url: https://notify.me/some/path
-  tags:
-    system: widget-system-a
-    component: service-b
-    owner: super-team-1
+monitors:
+  - name: Your Post Url
+    url: https://your.site/some/path
+    http_method: POST
+    sensitive: false
+    with:
+      headers:
+        x-client-id: ClientId
+      body: '"{"test": true}"'
+      timeout_seconds: 10
+    expectations:
+      - field: StatusCode
+        operation: Equals
+        value: "200"
+    schedule:
+      initial_delay: 2
+      interval: 60
+    alerts:
+      - url: https://notify.me/some/path
+    tags:
+      system: widget-system-a
+      component: service-b
+      owner: super-team-1
 ```
 
-### Stories
+### Multi-Step Monitors
 
-Stories define a chain of calls to different endpoints, to emulate the flow a real user would go through. Values from the response of earlier calls can be input to the request of another using the ${{}} syntax.
+Multi-step monitors (formerly "stories") define a chain of calls to different endpoints, to emulate the flow a real user would go through. Values from the response of earlier calls can be input to the request of another using the ${{}} syntax.
+
+To create a multi-step monitor, use the `steps` field instead of the root-level `url` and `http_method` fields:
 
 ```yaml
-stories:
+monitors:
   - name: Get IP Address Info User Flow
     steps:
       - name: get-ip
@@ -133,6 +136,8 @@ stories:
       owner: super-team-1
 ```
 
+**Note:** A monitor must have either `steps` OR the root-level `url`/`http_method` fields, but not both. Step names must be unique within a monitor.
+
 ### Variables
 
 One unique aspect of Prodzilla is the ability to substitute in values from earlier steps, environment variables, or generated values, as in the example above. Prodzilla currently supports the following variable substitutions.
@@ -151,19 +156,19 @@ If a requested environment variable is not set, Prodzilla will log a warning and
 
 Expectations can be declared using the `expectations` block and supports an unlimited number of rules. Currently, the supported fields are `StatusCode` and `Body`, and the supported operations are `Equals`, `NotEquals`, `Contains`, `NotContains`, `Matches` which accepts a regular expression, and `IsOneOf` (which accepts a string value separated by the pipe symbol `|`).
 
-Expectations can be put on Probes, or Steps within Stories.
+Expectations can be put on single-step monitors, or on individual steps within multi-step monitors.
 
 ## Notifications for Failures
 
-If expectations aren't met for a Probe or Story, a webhook will be sent to any urls configured within `alerts`.
+If expectations aren't met for a monitor, a webhook will be sent to any urls configured within `alerts`.
 
 ```yaml
-    - name: Probe or Story Name
-      ...
-      alerts:
-        - url: https://webhook.site/54a9a526-c104-42a7-9b76-788e897390d8
-        - url: https://hooks.slack.com/services/T000/B000/XXXX
-
+monitors:
+  - name: Monitor Name
+    ...
+    alerts:
+      - url: https://webhook.site/54a9a526-c104-42a7-9b76-788e897390d8
+      - url: https://hooks.slack.com/services/T000/B000/XXXX
 ```
 
 The webhook looks as such:
@@ -171,7 +176,7 @@ The webhook looks as such:
 ```yaml
 {
   "message": "Probe failed.",
-  "probe_name": "Your Probe",
+  "probe_name": "Your Monitor",
   "failure_timestamp": "2024-01-26T02:41:02.983025Z",
   "trace_id": "123456789abcdef",
   "error_message": 'Failed to meet expectation for field ''StatusCode'' with operation Equals "200".',
@@ -180,7 +185,7 @@ The webhook looks as such:
 }
 ```
 
-Response bodies are truncated to 500 characters. If a step or probe is marked as sensitive, the request body will be redacted from logs and alerts.
+Response bodies are truncated to 500 characters. If a step or monitor is marked as sensitive, the request body will be redacted from logs and alerts.
 
 Prodzilla will also recognize the Slack webhook domain `hooks.slack.com` and produce messages like:
 
@@ -206,16 +211,15 @@ OpsGenie, and PagerDuty notification integrations are planned.
 
 ## Prodzilla Server Endpoints
 
-Prodzilla also exposes a web server, which you can use to retrieve details about probes and stories, or trigger them. When running locally, these will exist at `localhost:3000`, e.g. `localhost:3000/stories`.
+Prodzilla exposes a web server which you can use to retrieve details about monitors or trigger them. When running locally, these will exist at `localhost:3000`, e.g. `localhost:3000/monitors`.
 
-### Get Probes and Stories
+### Get Monitors
 
-These endpoints output the running probes and stories, as well as their current status.
+This endpoint outputs all running monitors and their current status.
 
-Paths:
+Path:
 
-- /probes
-- /stories
+- /monitors
 
 Example Response:
 
@@ -230,20 +234,19 @@ Example Response:
 ]
 ```
 
-### Get Probe and Story Results
+### Get Monitor Results
 
-These endpoints output all of the results for a probe or story.
+This endpoint outputs all of the results for a specific monitor.
 
-Paths:
+Path:
 
-- /probes/{name}/results
-- /stories/{name}/results
+- /monitors/{name}/results
 
 Query Parameters:
 
 - show_response: bool - This determines whether the response, including the body, is output. Defaults to false.
 
-Example Response (for stories, probes will look slightly different):
+Example Response for multi-step monitor:
 
 ```json
 [
@@ -270,16 +273,17 @@ Example Response (for stories, probes will look slightly different):
 ]
 ```
 
-### Trigger Probe or Story (In Development)
+Single-step monitors will have a simpler structure without `step_results`.
 
-These endpoints will trigger a probe or story immediately, store the result alongside the scheduled results, and return the result.
+### Trigger Monitor
 
-Paths:
+This endpoint triggers a monitor immediately, stores the result alongside the scheduled results, and returns the result.
 
-- /probes/{name}/trigger
-- /stories{name}/trigger
+Path:
 
-Example Response (for stories, probes will look slightly different):
+- /monitors/{name}/trigger
+
+Example Response for multi-step monitor:
 
 ```json
 {
@@ -292,9 +296,11 @@ Example Response (for stories, probes will look slightly different):
 }
 ```
 
+**Legacy Routes:** The original `/probes` and `/stories` routes are still available for backward compatibility.
+
 ## Monitoring Prodzilla
 
-Prodzilla generates OpenTelemetry traces and metrics for each probe and story execution.
+Prodzilla generates OpenTelemetry traces and metrics for each monitor execution.
 It also outputs structured logs to standard out.
 
 ### Tracked metrics
@@ -310,9 +316,9 @@ Prodzilla tracks the following metrics:
 | http_status_code | Gauge(u64)     | The current HTTP status code of a step. 0 If the HTTP call fails. |
 
 All metrics have the attributes `name` and `type`.
-`type` is either `probe` for metrics measuring a probe, `story` for metrics measuring an entire story, or `step` for measuring an individual step in a story.
-`name` is the name of the probe, story, or step that is being measured.
-Metrics for an individual step have the additional attribute `story_name` which is the name of the story that the step is part of.
+`type` is either `probe` for metrics measuring a single-step monitor, `story` for metrics measuring an entire multi-step monitor, or `step` for measuring an individual step in a multi-step monitor.
+`name` is the name of the monitor or step that is being measured.
+Metrics for an individual step have the additional attribute `story_name` which is the name of the monitor that the step is part of.
 
 ### Traces
 
