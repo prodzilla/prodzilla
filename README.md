@@ -17,6 +17,7 @@ To be part of the community, or for any questions, join our [Discord](https://di
 ## Table of Contents
 
 - [Table of Contents](#table-of-contents)
+- [Supported Platforms](#supported-platforms)
 - [Getting Started](#getting-started)
 - [Configuring Synthetic Monitors](#configuring-synthetic-monitors)
   - [Probes](#probes)
@@ -37,7 +38,35 @@ To be part of the community, or for any questions, join our [Discord](https://di
 - [Deploying on Shuttle for Free](#deploying-on-shuttle-for-free)
 - [Feature Roadmap](#feature-roadmap)
 
+## Supported Platforms
+
+Prodzilla provides multi-architecture support for both binaries and Docker images:
+
+### Binaries
+
+Pre-built binaries are available for each release on the [GitHub Releases page](https://github.com/prodzilla/prodzilla/releases) for the following platforms:
+
+- **Linux**
+  - x86_64 (amd64): `prodzilla-x86_64-unknown-linux-gnu.tar.gz`
+  - ARM64 (aarch64): `prodzilla-aarch64-unknown-linux-gnu.tar.gz`
+- **macOS**
+  - Intel (x86_64): `prodzilla-x86_64-apple-darwin.tar.gz`
+  - Apple Silicon (ARM64): `prodzilla-aarch64-apple-darwin.tar.gz`
+- **Windows**
+  - x86_64: `prodzilla-x86_64-pc-windows-msvc.zip`
+
+### Docker Images
+
+Docker images are published to `ghcr.io/prodzilla/prodzilla` with multi-arch support:
+
+- `linux/amd64` (x86_64)
+- `linux/arm64` (ARM64/aarch64)
+
+Docker will automatically pull the correct image for your platform.
+
 ## Getting Started
+
+### Running from Source
 
 To get started probing your services, clone this repo, and in the root execute the command:
 
@@ -45,11 +74,27 @@ To get started probing your services, clone this repo, and in the root execute t
 cargo run
 ```
 
-You can also use Docker, as Prodzilla is published to `prodzilla/prodzilla`:
+### Using Docker
+
+You can also use Docker, as Prodzilla is published to `ghcr.io/prodzilla/prodzilla` with multi-architecture support (automatically pulls the correct image for your platform):
 
 ```
-docker run -v $(pwd)/prodzilla.yml:/prodzilla.yml prodzilla/prodzilla:latest
+docker run -v $(pwd)/prodzilla.yml:/prodzilla.yml ghcr.io/prodzilla/prodzilla:latest
 ```
+
+### Using Pre-built Binaries
+
+Download the appropriate binary for your platform from the [GitHub Releases page](https://github.com/prodzilla/prodzilla/releases), extract it, and run:
+
+```bash
+# Linux/macOS
+./prodzilla --file prodzilla.yml
+
+# Windows
+prodzilla.exe --file prodzilla.yml
+```
+
+### Configuration
 
 The application parses the [prodzilla.yml](/prodzilla.yml) file to generate a list of probes executed on a given schedule, and decide how to alert. Other configuration file paths can be selected using the `-f` flag. Execute `cargo run -- --help` or `prodzilla --help` to see a full list of configuration flags.
 

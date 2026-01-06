@@ -18,3 +18,33 @@ jobs:
         with:
           # (required) GitHub token for creating GitHub Releases.
           token: ${{ secrets.GITHUB_TOKEN }}
+
+  upload-assets:
+    needs: create-release
+    strategy:
+      matrix:
+        include:
+          # Linux x86_64
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          # Linux ARM64
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+          # macOS x86_64
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          # macOS ARM64
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          # Windows x86_64
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      # v1 tag as of 2024-06-13
+      - uses: taiki-e/upload-rust-binary-action@35ea8a08b52ce5f6f45559a2fcc4499edeba43fc
+        with:
+          bin: prodzilla
+          target: ${{ matrix.target }}
+          token: ${{ secrets.GITHUB_TOKEN }}
