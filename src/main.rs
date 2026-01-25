@@ -8,8 +8,6 @@ mod web_server;
 
 use clap::Parser;
 use probe::schedule::schedule_monitors;
-use probe::schedule::schedule_probes;
-use probe::schedule::schedule_stories;
 use std::sync::Arc;
 use web_server::start_axum_server;
 use web_server::start_prometheus_server;
@@ -47,9 +45,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn start_monitoring(app_state: Arc<AppState>) -> Result<(), Box<dyn std::error::Error>> {
     schedule_monitors(&app_state.config.monitors, app_state.clone());
-    // Keep backward compatibility for old config format
-    schedule_probes(&app_state.config.probes, app_state.clone());
-    schedule_stories(&app_state.config.stories, app_state.clone());
     Ok(())
 }
 

@@ -3,17 +3,12 @@ use std::{collections::HashSet, path::PathBuf};
 use serde::{de, Deserialize, Deserializer, Serialize};
 use tracing::warn;
 
-use crate::probe::model::{Monitor, Probe, Story};
+use crate::probe::model::Monitor;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Config {
     #[serde(default)]
     pub monitors: Vec<Monitor>,
-    // Keep these for backward compatibility during transition
-    #[serde(default, skip_serializing)]
-    pub probes: Vec<Probe>,
-    #[serde(default, skip_serializing)]
-    pub stories: Vec<Story>,
 }
 
 // Custom deserialization to validate unique monitor names
@@ -26,10 +21,6 @@ impl<'de> Deserialize<'de> for Config {
         struct ConfigHelper {
             #[serde(default)]
             monitors: Vec<Monitor>,
-            #[serde(default)]
-            probes: Vec<Probe>,
-            #[serde(default)]
-            stories: Vec<Story>,
         }
 
         let helper = ConfigHelper::deserialize(deserializer)?;
@@ -47,8 +38,6 @@ impl<'de> Deserialize<'de> for Config {
 
         Ok(Config {
             monitors: helper.monitors,
-            probes: helper.probes,
-            stories: helper.stories,
         })
     }
 }

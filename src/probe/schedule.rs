@@ -3,11 +3,9 @@ use std::sync::Arc;
 use tokio::time::Instant;
 use tracing::info;
 
-use crate::probe::model::{Monitor, Probe};
+use crate::probe::model::Monitor;
 use crate::probe::probe_logic::Monitorable;
 use crate::AppState;
-
-use super::model::Story;
 
 pub fn schedule_monitors(monitors: &[Monitor], app_state: Arc<AppState>) {
     for monitor in monitors {
@@ -21,27 +19,6 @@ pub fn schedule_monitors(monitors: &[Monitor], app_state: Arc<AppState>) {
             } else if let Some(story) = monitor_clone.to_story() {
                 probing_loop(&story, task_state).await;
             }
-        });
-    }
-}
-
-// TODO: Can update these signatures to just use app_state
-pub fn schedule_probes(probes: &Vec<Probe>, app_state: Arc<AppState>) {
-    for probe in probes {
-        let probe_clone = probe.clone();
-        let task_state = app_state.clone();
-        tokio::spawn(async move {
-            probing_loop(&probe_clone, task_state).await;
-        });
-    }
-}
-
-pub fn schedule_stories(stories: &Vec<Story>, app_state: Arc<AppState>) {
-    for story in stories {
-        let story_clone = story.clone();
-        let task_state = app_state.clone();
-        tokio::spawn(async move {
-            probing_loop(&story_clone, task_state).await;
         });
     }
 }
@@ -70,7 +47,8 @@ pub async fn probing_loop<T: Monitorable>(monitorable: &T, app_state: Arc<AppSta
 mod schedule_tests {
 
     use crate::config::Config;
-    use crate::probe::schedule::schedule_probes;
+    use crate::probe::model::Monitor;
+    use crate::probe::schedule::schedule_monitors;
     use crate::test_utils::probe_test_utils::{
         probe_get_with_expected_status, probe_get_with_expected_status_and_alert,
     };
@@ -112,15 +90,26 @@ mod schedule_tests {
             format!("{}{}", mock_server.uri(), alert_url.to_owned()),
         );
 
+        let monitor = Monitor {
+            name: probe.name.clone(),
+            url: Some(probe.url.clone()),
+            http_method: Some(probe.http_method.clone()),
+            with: probe.with.clone(),
+            expectations: probe.expectations.clone(),
+            sensitive: probe.sensitive,
+            steps: None,
+            schedule: probe.schedule.clone(),
+            alerts: probe.alerts.clone(),
+            tags: probe.tags.clone(),
+        };
+
         let config = Config {
-            monitors: vec![],
-            probes: vec![probe],
-            stories: vec![],
+            monitors: vec![monitor],
         };
 
         let app_state = Arc::new(AppState::new(config));
 
-        schedule_probes(&app_state.config.probes, app_state.clone());
+        schedule_monitors(&app_state.config.monitors, app_state.clone());
 
         // As delay and interval are 0, we'd expect that within 15 seconds our probe has been hit twice
         // One for first probe, then 10s timeout on request, then second probe
@@ -148,15 +137,26 @@ mod schedule_tests {
             "".to_owned(),
         );
 
+        let monitor = Monitor {
+            name: probe.name.clone(),
+            url: Some(probe.url.clone()),
+            http_method: Some(probe.http_method.clone()),
+            with: probe.with.clone(),
+            expectations: probe.expectations.clone(),
+            sensitive: probe.sensitive,
+            steps: None,
+            schedule: probe.schedule.clone(),
+            alerts: probe.alerts.clone(),
+            tags: probe.tags.clone(),
+        };
+
         let config = Config {
-            monitors: vec![],
-            probes: vec![probe],
-            stories: vec![],
+            monitors: vec![monitor],
         };
 
         let app_state = Arc::new(AppState::new(config));
 
-        schedule_probes(&app_state.config.probes, app_state.clone());
+        schedule_monitors(&app_state.config.monitors, app_state.clone());
 
         // As delay and interval are 0, we'd expect that within 15 seconds our probe has been hit twice
         // One for first probe, then 10s timeout on request, then second probe

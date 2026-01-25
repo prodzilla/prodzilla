@@ -383,8 +383,6 @@ mod probe_logic_tests {
         let story_name = "User Flow";
         let app_state = Arc::new(AppState::new(Config {
             monitors: vec![],
-            probes: vec![],
-            stories: vec![],
         }));
 
         Mock::given(method("GET"))
@@ -448,8 +446,6 @@ mod probe_logic_tests {
         let story_name = "User Flow";
         let app_state = Arc::new(AppState::new(Config {
             monitors: vec![],
-            probes: vec![],
-            stories: vec![],
         }));
 
         Mock::given(method("GET"))
@@ -530,8 +526,6 @@ mod probe_logic_tests {
         let story_name = "User Flow";
         let app_state = Arc::new(AppState::new(Config {
             monitors: vec![],
-            probes: vec![],
-            stories: vec![],
         }));
 
         Mock::given(method("GET"))
