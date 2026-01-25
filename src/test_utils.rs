@@ -4,9 +4,9 @@ pub mod probe_test_utils {
 
     use reqwest::StatusCode;
 
-    use crate::probe::model::{
-        ExpectField, ExpectOperation, Probe, ProbeAlert, ProbeExpectation, ProbeInputParameters,
-        ProbeScheduleParameters,
+    use crate::monitor::model::{
+        Alert, ExpectField, ExpectOperation, Expectation, InputParameters, Monitor,
+        ScheduleParameters,
     };
 
     pub fn probe_get_with_timeout_and_expected_status(
@@ -14,28 +14,29 @@ pub mod probe_test_utils {
         url: String,
         body: String,
         timeout_seconds: Option<u64>,
-    ) -> Probe {
-        Probe {
+    ) -> Monitor {
+        Monitor {
             name: "Test probe".to_string(),
-            url,
-            http_method: "GET".to_string(),
-            with: Some(ProbeInputParameters {
+            url: Some(url),
+            http_method: Some("GET".to_string()),
+            with: Some(InputParameters {
                 body: Some(body),
                 headers: Some(HashMap::new()),
                 timeout_seconds,
             }),
-            expectations: Some(vec![ProbeExpectation {
+            expectations: Some(vec![Expectation {
                 field: ExpectField::StatusCode,
                 operation: ExpectOperation::Equals,
                 value: status_code.as_str().into(),
             }]),
-            schedule: ProbeScheduleParameters {
+            schedule: ScheduleParameters {
                 initial_delay: 0,
                 interval: 0,
             },
             alerts: None,
             tags: None,
             sensitive: false,
+            steps: None,
         }
     }
 
@@ -43,28 +44,29 @@ pub mod probe_test_utils {
         status_code: StatusCode,
         url: String,
         body: String,
-    ) -> Probe {
-        Probe {
+    ) -> Monitor {
+        Monitor {
             name: "Test probe".to_string(),
-            url,
-            http_method: "GET".to_string(),
-            with: Some(ProbeInputParameters {
+            url: Some(url),
+            http_method: Some("GET".to_string()),
+            with: Some(InputParameters {
                 body: Some(body),
                 headers: Some(HashMap::new()),
                 timeout_seconds: None,
             }),
-            expectations: Some(vec![ProbeExpectation {
+            expectations: Some(vec![Expectation {
                 field: ExpectField::StatusCode,
                 operation: ExpectOperation::Equals,
                 value: status_code.as_str().into(),
             }]),
-            schedule: ProbeScheduleParameters {
+            schedule: ScheduleParameters {
                 initial_delay: 0,
                 interval: 0,
             },
             alerts: None,
             tags: None,
             sensitive: false,
+            steps: None,
         }
     }
 
@@ -73,28 +75,29 @@ pub mod probe_test_utils {
         url: String,
         body: String,
         alert_url: String,
-    ) -> Probe {
-        Probe {
+    ) -> Monitor {
+        Monitor {
             name: "Test probe".to_string(),
-            url,
-            http_method: "GET".to_string(),
-            with: Some(ProbeInputParameters {
+            url: Some(url),
+            http_method: Some("GET".to_string()),
+            with: Some(InputParameters {
                 body: Some(body),
                 headers: Some(HashMap::new()),
                 timeout_seconds: None,
             }),
-            expectations: Some(vec![ProbeExpectation {
+            expectations: Some(vec![Expectation {
                 field: ExpectField::StatusCode,
                 operation: ExpectOperation::Equals,
                 value: status_code.as_str().into(),
             }]),
-            schedule: ProbeScheduleParameters {
+            schedule: ScheduleParameters {
                 initial_delay: 0,
                 interval: 0,
             },
-            alerts: Some(vec![ProbeAlert { url: alert_url }]),
+            alerts: Some(vec![Alert { url: alert_url }]),
             tags: None,
             sensitive: false,
+            steps: None,
         }
     }
 
@@ -102,35 +105,36 @@ pub mod probe_test_utils {
         expected_body: String,
         url: String,
         body: String,
-    ) -> Probe {
-        Probe {
+    ) -> Monitor {
+        Monitor {
             name: "Test probe".to_string(),
-            url,
-            http_method: "POST".to_string(),
-            with: Some(ProbeInputParameters {
+            url: Some(url),
+            http_method: Some("POST".to_string()),
+            with: Some(InputParameters {
                 body: Some(body),
                 headers: Some(HashMap::new()),
                 timeout_seconds: None,
             }),
             expectations: Some(vec![
-                ProbeExpectation {
+                Expectation {
                     field: ExpectField::StatusCode,
                     operation: ExpectOperation::Equals,
                     value: "200".to_owned(),
                 },
-                ProbeExpectation {
+                Expectation {
                     field: ExpectField::Body,
                     operation: ExpectOperation::Equals,
                     value: expected_body,
                 },
             ]),
-            schedule: ProbeScheduleParameters {
+            schedule: ScheduleParameters {
                 initial_delay: 0,
                 interval: 0,
             },
             alerts: None,
             tags: None,
             sensitive: false,
+            steps: None,
         }
     }
 }

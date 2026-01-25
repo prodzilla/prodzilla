@@ -16,7 +16,7 @@ use reqwest::header::HeaderMap;
 use reqwest::RequestBuilder;
 
 use super::model::EndpointResult;
-use super::model::ProbeInputParameters;
+use super::model::InputParameters;
 use opentelemetry::trace::TraceContextExt;
 use opentelemetry::Context;
 use opentelemetry::{global, trace::Tracer};
@@ -35,7 +35,7 @@ lazy_static! {
 pub async fn call_endpoint(
     http_method: &str,
     url: &String,
-    input_parameters: &Option<ProbeInputParameters>,
+    input_parameters: &Option<InputParameters>,
     sensitive: bool,
 ) -> Result<EndpointResult, Box<dyn std::error::Error + Send>> {
     let timestamp_start = Utc::now();
@@ -106,7 +106,7 @@ fn get_otel_headers(span_name: String) -> (HeaderMap, Context, SpanId, TraceId) 
 fn build_request(
     http_method: &str,
     url: &String,
-    input_parameters: &Option<ProbeInputParameters>,
+    input_parameters: &Option<InputParameters>,
     otel_headers: HeaderMap,
 ) -> Result<RequestBuilder, Box<dyn std::error::Error + Send>> {
     let method = reqwest::Method::from_str(http_method).map_to_send_err()?;
@@ -134,9 +134,9 @@ mod http_tests {
     use std::env;
     use std::time::Duration;
 
+    use crate::monitor::expectations::validate_response;
+    use crate::monitor::http::call_endpoint;
     use crate::otel;
-    use crate::probe::expectations::validate_response;
-    use crate::probe::http_probe::call_endpoint;
     use crate::test_utils::probe_test_utils::{
         probe_get_with_expected_status, probe_get_with_timeout_and_expected_status,
         probe_post_with_expected_body,
@@ -163,9 +163,14 @@ mod http_tests {
             format!("{}/test", mock_server.uri()),
             "".to_owned(),
         );
-        let endpoint_result = call_endpoint(&probe.http_method, &probe.url, &probe.with, false)
-            .await
-            .unwrap();
+        let endpoint_result = call_endpoint(
+            &probe.http_method.unwrap(),
+            &probe.url.unwrap(),
+            &probe.with,
+            false,
+        )
+        .await
+        .unwrap();
         let check_expectations_result = validate_response(
             &probe.name,
             endpoint_result.status_code,
@@ -193,8 +198,13 @@ mod http_tests {
             format!("{}/test", mock_server.uri()),
             body.to_string(),
         );
-        let endpoint_result =
-            call_endpoint(&probe.http_method, &probe.url, &probe.with, false).await;
+        let endpoint_result = call_endpoint(
+            &probe.http_method.unwrap(),
+            &probe.url.unwrap(),
+            &probe.with,
+            false,
+        )
+        .await;
 
         assert!(endpoint_result.is_err());
     }
@@ -217,8 +227,13 @@ mod http_tests {
             body.to_string(),
             Some(1), // Timeout is 1 second, reduced from default of 10
         );
-        let endpoint_result =
-            call_endpoint(&probe.http_method, &probe.url, &probe.with, false).await;
+        let endpoint_result = call_endpoint(
+            &probe.http_method.unwrap(),
+            &probe.url.unwrap(),
+            &probe.with,
+            false,
+        )
+        .await;
 
         assert!(endpoint_result.is_err());
     }
@@ -241,9 +256,14 @@ mod http_tests {
             format!("{}/test", mock_server.uri()),
             body.to_string(),
         );
-        let endpoint_result = call_endpoint(&probe.http_method, &probe.url, &probe.with, false)
-            .await
-            .unwrap();
+        let endpoint_result = call_endpoint(
+            &probe.http_method.unwrap(),
+            &probe.url.unwrap(),
+            &probe.with,
+            false,
+        )
+        .await
+        .unwrap();
         let check_expectations_result = validate_response(
             &probe.name,
             endpoint_result.status_code,
@@ -278,9 +298,14 @@ mod http_tests {
             format!("{}/test", mock_server.uri()),
             request_body.to_owned(),
         );
-        let endpoint_result = call_endpoint(&probe.http_method, &probe.url, &probe.with, false)
-            .await
-            .unwrap();
+        let endpoint_result = call_endpoint(
+            &probe.http_method.unwrap(),
+            &probe.url.unwrap(),
+            &probe.with,
+            false,
+        )
+        .await
+        .unwrap();
         let check_expectations_result = validate_response(
             &probe.name,
             endpoint_result.status_code,

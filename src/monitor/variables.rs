@@ -5,15 +5,15 @@ use std::collections::HashMap;
 use tracing::error;
 use uuid::Uuid;
 
-use super::model::ProbeInputParameters;
+use super::model::InputParameters;
 
-pub struct StoryVariables {
+pub struct ExecutionContext {
     pub steps: HashMap<String, StepVariables>,
 }
 
-impl StoryVariables {
-    pub fn new() -> StoryVariables {
-        StoryVariables {
+impl ExecutionContext {
+    pub fn new() -> ExecutionContext {
+        ExecutionContext {
             steps: HashMap::new(),
         }
     }
@@ -28,10 +28,10 @@ lazy_static! {
 }
 
 pub fn substitute_input_parameters(
-    input_parameters: &Option<ProbeInputParameters>,
-    variables: &StoryVariables,
-) -> Option<ProbeInputParameters> {
-    input_parameters.as_ref().map(|input| ProbeInputParameters {
+    input_parameters: &Option<InputParameters>,
+    variables: &ExecutionContext,
+) -> Option<InputParameters> {
+    input_parameters.as_ref().map(|input| InputParameters {
         body: input
             .body
             .as_ref()
@@ -46,7 +46,7 @@ pub fn substitute_input_parameters(
 
 pub fn substitute_variables_in_headers(
     headers: &HashMap<String, String>,
-    variables: &StoryVariables,
+    variables: &ExecutionContext,
 ) -> HashMap<String, String> {
     headers
         .iter()
@@ -59,7 +59,7 @@ pub fn substitute_variables_in_headers(
 }
 
 // This could return an error in future - for now it fills an empty string
-pub fn substitute_variables(content: &str, variables: &StoryVariables) -> String {
+pub fn substitute_variables(content: &str, variables: &ExecutionContext) -> String {
     SUB_REGEX
         .replace_all(content, |caps: &regex::Captures| {
             let placeholder = &caps[1].trim();
@@ -81,7 +81,7 @@ fn get_generated_value(type_to_generate: Option<&&str>) -> String {
     }
 }
 
-fn substitute_step_value(parts: &[&str], variables: &StoryVariables) -> String {
+fn substitute_step_value(parts: &[&str], variables: &ExecutionContext) -> String {
     let step_name = parts[0];
 
     match variables.steps.get(step_name) {
@@ -145,7 +145,7 @@ async fn test_substitute_several_variables() {
         "other_field": "value"
     }"#;
 
-    let variables = StoryVariables {
+    let variables = ExecutionContext {
         steps: HashMap::from([(
             "get-token".to_string(),
             StepVariables {
@@ -166,7 +166,7 @@ async fn test_substitute_input_parameters() {
         "other_field": "value"
     }"#;
 
-    let variables = StoryVariables {
+    let variables = ExecutionContext {
         steps: HashMap::from([(
             "get-token".to_string(),
             StepVariables {
@@ -175,7 +175,7 @@ async fn test_substitute_input_parameters() {
         )]),
     };
 
-    let input_parameters = Some(ProbeInputParameters {
+    let input_parameters = Some(InputParameters {
         body: Some("entire_body: ${{steps.get-token.response.body}}".to_owned()),
         headers: Some(HashMap::from([(
             "Authorization".to_owned(),
@@ -193,7 +193,7 @@ async fn test_substitute_input_parameters() {
 
 #[tokio::test]
 async fn test_substitute_input_parameters_empty() {
-    let result = substitute_input_parameters(&None, &StoryVariables::new());
+    let result = substitute_input_parameters(&None, &ExecutionContext::new());
     assert!(result.is_none());
 }
 
@@ -206,7 +206,7 @@ async fn test_substitute_variable_doesnt_exist_in_json() {
         "other_field": "value"
     }"#;
 
-    let variables = StoryVariables {
+    let variables = ExecutionContext {
         steps: HashMap::from([(
             "get-token".to_string(),
             StepVariables {
@@ -223,7 +223,7 @@ async fn test_substitute_variable_doesnt_exist_in_json() {
 async fn test_substitute_variable_step_doesnt_exist() {
     let content = r#"field: ${{steps.get-token.response.body.invalid}}"#.to_owned();
 
-    let variables = StoryVariables {
+    let variables = ExecutionContext {
         steps: HashMap::new(),
     };
 

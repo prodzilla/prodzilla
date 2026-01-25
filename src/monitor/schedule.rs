@@ -3,8 +3,8 @@ use std::sync::Arc;
 use tokio::time::Instant;
 use tracing::info;
 
-use crate::probe::model::Monitor;
-use crate::probe::probe_logic::Monitorable;
+use crate::monitor::model::Monitor;
+use crate::monitor::monitor_logic::Monitorable;
 use crate::AppState;
 
 pub fn schedule_monitors(monitors: &[Monitor], app_state: Arc<AppState>) {
@@ -12,18 +12,12 @@ pub fn schedule_monitors(monitors: &[Monitor], app_state: Arc<AppState>) {
         let monitor_clone = monitor.clone();
         let task_state = app_state.clone();
         tokio::spawn(async move {
-            if monitor_clone.is_single_step() {
-                if let Some(probe) = monitor_clone.to_probe() {
-                    probing_loop(&probe, task_state).await;
-                }
-            } else if let Some(story) = monitor_clone.to_story() {
-                probing_loop(&story, task_state).await;
-            }
+            monitoring_loop(&monitor_clone, task_state).await;
         });
     }
 }
 
-pub async fn probing_loop<T: Monitorable>(monitorable: &T, app_state: Arc<AppState>) {
+pub async fn monitoring_loop<T: Monitorable>(monitorable: &T, app_state: Arc<AppState>) {
     info!("Started monitoring {}", monitorable.get_name());
 
     let schedule = monitorable.get_schedule();
@@ -47,8 +41,7 @@ pub async fn probing_loop<T: Monitorable>(monitorable: &T, app_state: Arc<AppSta
 mod schedule_tests {
 
     use crate::config::Config;
-    use crate::probe::model::Monitor;
-    use crate::probe::schedule::schedule_monitors;
+    use crate::monitor::schedule::schedule_monitors;
     use crate::test_utils::probe_test_utils::{
         probe_get_with_expected_status, probe_get_with_expected_status_and_alert,
     };
@@ -83,25 +76,12 @@ mod schedule_tests {
             .mount(&mock_server)
             .await;
 
-        let probe = probe_get_with_expected_status_and_alert(
+        let monitor = probe_get_with_expected_status_and_alert(
             StatusCode::OK,
             format!("{}{}", mock_server.uri(), probe_url.to_owned()),
             "".to_owned(),
             format!("{}{}", mock_server.uri(), alert_url.to_owned()),
         );
-
-        let monitor = Monitor {
-            name: probe.name.clone(),
-            url: Some(probe.url.clone()),
-            http_method: Some(probe.http_method.clone()),
-            with: probe.with.clone(),
-            expectations: probe.expectations.clone(),
-            sensitive: probe.sensitive,
-            steps: None,
-            schedule: probe.schedule.clone(),
-            alerts: probe.alerts.clone(),
-            tags: probe.tags.clone(),
-        };
 
         let config = Config {
             monitors: vec![monitor],
@@ -131,24 +111,11 @@ mod schedule_tests {
             .mount(&mock_server)
             .await;
 
-        let probe = probe_get_with_expected_status(
+        let monitor = probe_get_with_expected_status(
             StatusCode::OK,
             format!("{}{}", mock_server.uri(), probe_url.to_owned()),
             "".to_owned(),
         );
-
-        let monitor = Monitor {
-            name: probe.name.clone(),
-            url: Some(probe.url.clone()),
-            http_method: Some(probe.http_method.clone()),
-            with: probe.with.clone(),
-            expectations: probe.expectations.clone(),
-            sensitive: probe.sensitive,
-            steps: None,
-            schedule: probe.schedule.clone(),
-            alerts: probe.alerts.clone(),
-            tags: probe.tags.clone(),
-        };
 
         let config = Config {
             monitors: vec![monitor],

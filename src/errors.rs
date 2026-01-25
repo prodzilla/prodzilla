@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use crate::probe::model::{ExpectField, ExpectOperation};
+use crate::monitor::model::{ExpectField, ExpectOperation};
 
 pub trait MapToSendError<T, E> {
     fn map_to_send_err(self) -> Result<T, Box<dyn std::error::Error + Send>>;

@@ -2,9 +2,7 @@ mod model;
 mod monitors;
 mod prometheus_metrics;
 
-use crate::web_server::{
-    monitors::{get_monitor_results, monitor_trigger, monitors},
-};
+use crate::web_server::monitors::{get_monitor_results, monitor_trigger, monitors};
 use axum::{routing::get, Extension, Router};
 use std::{env, sync::Arc};
 use tracing::{debug, info};

@@ -1,8 +1,8 @@
 use std::time::Duration;
 
 use crate::errors::MapToSendError;
-use crate::probe::model::ProbeAlert;
-use crate::{alerts::model::WebhookNotification, probe::model::ProbeResponse};
+use crate::monitor::model::Alert;
+use crate::{alerts::model::WebhookNotification, monitor::model::EndpointResponse};
 use chrono::{DateTime, Utc};
 use lazy_static::lazy_static;
 use tracing::{info, warn};
@@ -21,18 +21,18 @@ lazy_static! {
 pub async fn alert_if_failure(
     success: bool,
     error: Option<&str>,
-    probe_response: Option<&ProbeResponse>,
-    probe_name: &str,
+    response: Option<&EndpointResponse>,
+    monitor_name: &str,
     failure_timestamp: DateTime<Utc>,
-    alerts: &Option<Vec<ProbeAlert>>,
+    alerts: &Option<Vec<Alert>>,
     trace_id: &Option<String>,
 ) -> Result<(), Vec<Box<dyn std::error::Error + Send>>> {
     if success {
         return Ok(());
     }
     let error_message = error.unwrap_or("No error message");
-    let status_code = probe_response.map(|r| r.status_code);
-    let truncated_body = match probe_response {
+    let status_code = response.map(|r| r.status_code);
+    let truncated_body = match response {
         Some(r) if !r.sensitive => Some(r.truncated_body(500)),
         Some(_) => Some("Redacted".to_owned()),
         None => None,
@@ -42,7 +42,7 @@ pub async fn alert_if_failure(
         .unwrap_or(&"N/A".to_owned())
         .replace('\n', "\\n");
     warn!(
-        "Probe {probe_name} failed at {failure_timestamp} with trace ID {}. Status code: {}. Error: {error_message}. Body: {}",
+        "Monitor {monitor_name} failed at {failure_timestamp} with trace ID {}. Status code: {}. Error: {error_message}. Body: {}",
         trace_id.as_ref().unwrap_or(&"N/A".to_owned()),
         status_code.map_or("N/A".to_owned(), |code| code.to_string()),
         log_body,
@@ -52,7 +52,7 @@ pub async fn alert_if_failure(
         for alert in alerts_vec {
             if let Err(e) = send_alert(
                 alert,
-                probe_name.to_owned(),
+                monitor_name.to_owned(),
                 status_code,
                 truncated_body.as_deref(),
                 error_message,
@@ -98,7 +98,7 @@ pub async fn send_generic_webhook(
 
 pub async fn send_webhook_alert(
     url: &String,
-    probe_name: String,
+    monitor_name: String,
     status_code: Option<u32>,
     body: Option<&str>,
     error_message: &str,
@@ -106,8 +106,8 @@ pub async fn send_webhook_alert(
     trace_id: Option<String>,
 ) -> Result<(), Box<dyn std::error::Error + Send>> {
     let request_body = WebhookNotification {
-        message: "Probe failed.".to_owned(),
-        probe_name,
+        message: "Monitor failed.".to_owned(),
+        monitor_name,
         error_message: error_message.to_owned(),
         failure_timestamp,
         trace_id,
@@ -121,7 +121,7 @@ pub async fn send_webhook_alert(
 
 pub async fn send_slack_alert(
     webhook_url: &String,
-    probe_name: String,
+    monitor_name: String,
     status_code: Option<u32>,
     body: Option<&str>,
     error_message: &str,
@@ -134,7 +134,7 @@ pub async fn send_slack_alert(
             r#type: "header".to_owned(),
             text: Some(SlackTextBlock {
                 r#type: "plain_text".to_owned(),
-                text: format!("\"{}\" failed.", probe_name),
+                text: format!("\"{}\" failed.", monitor_name),
             }),
             elements: None,
         },
@@ -190,8 +190,8 @@ pub async fn send_slack_alert(
 }
 
 pub async fn send_alert(
-    alert: &ProbeAlert,
-    probe_name: String,
+    alert: &Alert,
+    monitor_name: String,
     status_code: Option<u32>,
     body: Option<&str>,
     error_message: &str,
@@ -203,7 +203,7 @@ pub async fn send_alert(
         "hooks.slack.com" => {
             send_slack_alert(
                 &alert.url,
-                probe_name.clone(),
+                monitor_name.clone(),
                 status_code,
                 body,
                 error_message,
@@ -215,7 +215,7 @@ pub async fn send_alert(
         _ => {
             send_webhook_alert(
                 &alert.url,
-                probe_name.clone(),
+                monitor_name.clone(),
                 status_code,
                 body,
                 error_message,
@@ -231,7 +231,7 @@ pub async fn send_alert(
 mod webhook_tests {
 
     use crate::alerts::outbound_webhook::alert_if_failure;
-    use crate::probe::model::ProbeAlert;
+    use crate::monitor::model::Alert;
 
     use chrono::Utc;
     use wiremock::matchers::{method, path};
@@ -250,8 +250,8 @@ mod webhook_tests {
             .mount(&mock_server)
             .await;
 
-        let probe_name = "Some Flow".to_owned();
-        let alerts = Some(vec![ProbeAlert {
+        let monitor_name = "Some Flow".to_owned();
+        let alerts = Some(vec![Alert {
             url: format!("{}{}", mock_server.uri(), alert_url.to_owned()),
         }]);
         let failure_timestamp = Utc::now();
@@ -260,7 +260,7 @@ mod webhook_tests {
             false,
             Some("Test error"),
             None,
-            &probe_name,
+            &monitor_name,
             failure_timestamp,
             &alerts,
             &None,

@@ -1,7 +1,7 @@
 use crate::errors::ExpectationFailedError;
-use crate::probe::model::ExpectField;
-use crate::probe::model::ExpectOperation;
-use crate::probe::model::ProbeExpectation;
+use crate::monitor::model::ExpectField;
+use crate::monitor::model::ExpectOperation;
+use crate::monitor::model::Expectation;
 use regex::Regex;
 use tracing::debug;
 
@@ -9,7 +9,7 @@ pub fn validate_response(
     step_name: &String,
     status_code: u32,
     body: String,
-    expectations: &Option<Vec<ProbeExpectation>>,
+    expectations: &Option<Vec<Expectation>>,
 ) -> Result<(), ExpectationFailedError> {
     match expectations {
         Some(expect_back) => match validate_response_internal(expect_back, status_code, body) {
@@ -36,7 +36,7 @@ pub fn validate_response(
 }
 
 pub fn validate_response_internal(
-    expect: &Vec<ProbeExpectation>,
+    expect: &Vec<Expectation>,
     status_code: u32,
     body: String,
 ) -> Result<(), ExpectationFailedError> {
@@ -60,7 +60,7 @@ fn expectation_met(operation: &ExpectOperation, expected: &String, received: &St
 }
 
 fn validate_expectation(
-    expect: &ProbeExpectation,
+    expect: &Expectation,
     status_code: u32,
     body: &String,
 ) -> Result<(), ExpectationFailedError> {

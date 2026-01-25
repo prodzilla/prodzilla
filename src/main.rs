@@ -2,12 +2,12 @@ mod alerts;
 mod app_state;
 mod config;
 mod errors;
+mod monitor;
 mod otel;
-mod probe;
 mod web_server;
 
 use clap::Parser;
-use probe::schedule::schedule_monitors;
+use monitor::schedule::schedule_monitors;
 use std::sync::Arc;
 use web_server::start_axum_server;
 use web_server::start_prometheus_server;

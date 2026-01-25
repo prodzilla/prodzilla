@@ -3,7 +3,7 @@ use std::{collections::HashSet, path::PathBuf};
 use serde::{de, Deserialize, Deserializer, Serialize};
 use tracing::warn;
 
-use crate::probe::model::Monitor;
+use crate::monitor::model::Monitor;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Config {
@@ -98,7 +98,7 @@ mod config_tests {
         let single_step_count = config
             .monitors
             .iter()
-            .filter(|m| m.is_single_step())
+            .filter(|m| !m.is_multi_step())
             .count();
         let multi_step_count = config.monitors.iter().filter(|m| m.is_multi_step()).count();
         assert_eq!(1, single_step_count, "Should have 1 single-step monitor");
@@ -193,7 +193,7 @@ monitors:
     }
 
     #[tokio::test]
-    async fn test_monitor_single_step_conversion() {
+    async fn test_monitor_single_step() {
         let yaml = r#"
 monitors:
   - name: test-probe
@@ -206,15 +206,14 @@ monitors:
         let config: super::Config = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(1, config.monitors.len());
         let monitor = &config.monitors[0];
-        assert!(monitor.is_single_step());
         assert!(!monitor.is_multi_step());
-        let probe = monitor.to_probe();
-        assert!(probe.is_some());
-        assert_eq!("test-probe", probe.unwrap().name);
+        assert_eq!("test-probe", monitor.name);
+        assert_eq!("https://example.com", monitor.url.as_ref().unwrap());
+        assert_eq!("GET", monitor.http_method.as_ref().unwrap());
     }
 
     #[tokio::test]
-    async fn test_monitor_multi_step_conversion() {
+    async fn test_monitor_multi_step() {
         let yaml = r#"
 monitors:
   - name: test-story
@@ -233,12 +232,11 @@ monitors:
         assert_eq!(1, config.monitors.len());
         let monitor = &config.monitors[0];
         assert!(monitor.is_multi_step());
-        assert!(!monitor.is_single_step());
-        let story = monitor.to_story();
-        assert!(story.is_some());
-        let story = story.unwrap();
-        assert_eq!("test-story", story.name);
-        assert_eq!(2, story.steps.len());
+        assert_eq!("test-story", monitor.name);
+        let steps = monitor.steps.as_ref().unwrap();
+        assert_eq!(2, steps.len());
+        assert_eq!("step1", steps[0].name);
+        assert_eq!("step2", steps[1].name);
     }
 
     #[tokio::test]
