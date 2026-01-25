@@ -175,8 +175,8 @@ The webhook looks as such:
 
 ```yaml
 {
-  "message": "Probe failed.",
-  "probe_name": "Your Monitor",
+  "message": "Monitor failed.",
+  "monitor_name": "Your Monitor",
   "failure_timestamp": "2024-01-26T02:41:02.983025Z",
   "trace_id": "123456789abcdef",
   "error_message": 'Failed to meet expectation for field ''StatusCode'' with operation Equals "200".',
@@ -251,7 +251,7 @@ Example Response for multi-step monitor:
 ```json
 [
     {
-        "story_name": "get-ip-user-flow",
+        "monitor_name": "get-ip-user-flow",
         "timestamp_started": "2024-02-05T10:02:40.670211600Z",
         "success": true,
         "step_results": [
@@ -287,7 +287,7 @@ Example Response for multi-step monitor:
 
 ```json
 {
-    "story_name": "get-ip-user-flow",
+    "monitor_name": "get-ip-user-flow",
     "timestamp_started": "2024-02-10T00:36:05.768730400Z",
     "success": true,
     "step_results": [
@@ -295,8 +295,6 @@ Example Response for multi-step monitor:
     ]
 }
 ```
-
-**Legacy Routes:** The original `/probes` and `/stories` routes are still available for backward compatibility.
 
 ## Monitoring Prodzilla
 
@@ -316,9 +314,9 @@ Prodzilla tracks the following metrics:
 | http_status_code | Gauge(u64)     | The current HTTP status code of a step. 0 If the HTTP call fails. |
 
 All metrics have the attributes `name` and `type`.
-`type` is either `probe` for metrics measuring a single-step monitor, `story` for metrics measuring an entire multi-step monitor, or `step` for measuring an individual step in a multi-step monitor.
+`type` is either `monitor` for metrics measuring an entire monitor execution, or `step` for measuring an individual step in a multi-step monitor.
 `name` is the name of the monitor or step that is being measured.
-Metrics for an individual step have the additional attribute `story_name` which is the name of the monitor that the step is part of.
+Metrics for an individual step have the additional attribute `monitor_name` which is the name of the monitor that the step is part of.
 
 ### Traces
 

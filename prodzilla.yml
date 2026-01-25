@@ -30,7 +30,7 @@ monitors:
             operation: Equals
             value: "200"
       - name: get-location
-        url: https://ipinfo.io/${{ steps.get-ip.body.ip }}/geo
+        url: https://ipinfo.io/${{ steps.get-ip.response.body.ip }}/geo
         http_method: GET
         expectations:
           - field: StatusCode

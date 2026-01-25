@@ -7,19 +7,19 @@ use tracing::debug;
 
 use crate::{app_state::AppState, monitor::monitor_logic::Monitorable};
 
-use super::model::{ProbeQueryParams, ProbeResponse};
+use super::model::{MonitorQueryParams, MonitorResponse};
 
 /// Get a list of all monitors with their status
-pub async fn monitors(Extension(state): Extension<Arc<AppState>>) -> Json<Vec<ProbeResponse>> {
+pub async fn monitors(Extension(state): Extension<Arc<AppState>>) -> Json<Vec<MonitorResponse>> {
     debug!("Get monitors called");
 
-    let mut monitors: Vec<ProbeResponse> = vec![];
+    let mut monitors: Vec<MonitorResponse> = vec![];
 
     let monitor_lock = state.monitor_results.read().unwrap();
     for (key, value) in monitor_lock.iter() {
         if let Some(last) = value.last() {
             let status = if last.success { "OK" } else { "FAILING" };
-            monitors.push(ProbeResponse {
+            monitors.push(MonitorResponse {
                 name: key.clone(),
                 status: status.to_owned(),
                 last_probed: last.timestamp_started,
@@ -33,7 +33,7 @@ pub async fn monitors(Extension(state): Extension<Arc<AppState>>) -> Json<Vec<Pr
 /// Get results for a specific monitor
 pub async fn get_monitor_results(
     Path(name): Path<String>,
-    Query(params): Query<ProbeQueryParams>,
+    Query(params): Query<MonitorQueryParams>,
     Extension(state): Extension<Arc<AppState>>,
 ) -> Json<serde_json::Value> {
     debug!("Get monitor results called for: {}", name);
