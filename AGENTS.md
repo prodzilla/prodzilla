@@ -1,164 +1,66 @@
-# Project overview
-- Prodzilla is a Rust 2021 synthetic monitoring service using `axum` for HTTP, `tokio` runtime, `reqwest` for outbound calls, `tracing` for logs, and OpenTelemetry for traces/metrics. It exposes a JSON API and optionally a Prometheus endpoint.
+# CLAUDE.md
 
-## Language, toolchain, formatting
-- Use Rust edition 2021. Prefer stable toolchain.
-- Always run `cargo fmt` and `cargo clippy -D warnings` on edits.
-- Keep code readable with descriptive names; avoid single-letter or abbreviated identifiers.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Dependencies and architecture
-- Web server: `axum` 0.7; return `axum::Json<T>` for JSON responses; inject shared state via `Extension<Arc<AppState>>`.
-- Async runtime: `tokio` 1.x; never block the runtime (no std::thread::sleep).
-- HTTP client: `reqwest` 0.11 with a single reused client via `lazy_static!`. Reuse the existing client(s) instead of creating new ones.
-- Telemetry: OpenTelemetry via `opentelemetry`, `opentelemetry-otlp`, `opentelemetry-prometheus`, `tracing`, `tracing-subscriber`.
+## Project Overview
 
-## Error handling
-- Functions that cross async/task boundaries should return `Result<T, Box<dyn std::error::Error + Send>>` (or `Box<dyn Error + Send>` for errors) to preserve sendability.
-- Prefer converting third-party errors with `MapToSendError` (see `errors.rs`) rather than `.unwrap()` or `.expect()`.
-- Only use `.unwrap()` in tests or truly infallible contexts; otherwise bubble errors up.
-- When implementing errors, implement `std::fmt::Display` and `std::error::Error`.
+Prodzilla is a lightweight synthetic monitoring tool written in Rust that tests user flows in production. It supports single-step monitors (traditional health checks) and multi-step monitors (chained requests with variable passing between steps). Runs with <15MB RAM. Fully integrated with OpenTelemetry for tracing and metrics.
 
-## Logging and tracing
-- Use `tracing` macros (`trace!`, `debug!`, `info!`, `warn!`, `error!`), not `println!`.
-- Instrument work with OpenTelemetry spans. For HTTP calls: propagate context using `opentelemetry_http::HeaderInjector`; attach attributes:
-  - HTTP spans: `http.method`, `http.url`, `http.status_code`
-  - Step/probe/story spans: `name`, `type` (probe|story|step), and `story_name` on step spans
-- On errors or expectation failures: record error on the active span and set span status to error.
-- Respect sensitive data: if an operation is marked `sensitive`, do not log or attach response body; use “Redacted”.
+## Build & Development Commands
 
-## Metrics
-- Use the existing `Metrics` in `src/otel/metrics.rs`:
-  - `runs` (Counter<u64>)
-  - `duration` (Histogram<u64>, milliseconds)
-  - `errors` (Counter<u64>)
-  - `status` (Gauge<u64>, 0=OK, 1=Error)
-  - `http_status_code` (Gauge<u64>, 0 if HTTP call failed)
-- Always include attributes `name` and `type` (probe|story|step). Steps also include `story_name`.
-- If you add new monitors or flows, ensure metrics update paths mirror existing patterns.
+```bash
+cargo run                        # Run with default prodzilla.yml config
+cargo run -- -f custom.yml       # Run with custom config file
+cargo build --locked --release   # Release build
+cargo test --verbose             # Run all tests
+cargo clippy --all-targets --all-features  # Lint
+cargo fmt --all -- --check       # Format check
+```
 
-## OpenTelemetry exporters and env
-- Follow existing env-based configuration:
-  - `OTEL_EXPORTER_OTLP_ENDPOINT` (default `http://localhost:4317`)
-  - `OTEL_EXPORTER_OTLP_PROTOCOL` in {`grpc`, `http/protobuf`, `http/json`}
-  - `OTEL_EXPORTER_OTLP_TIMEOUT` seconds (default 10)
-  - `OTEL_METRICS_EXPORTER` in {`otlp`, `stdout`, `prometheus`} (unset = disabled)
-  - `OTEL_TRACES_EXPORTER` in {`otlp`, `stdout`} (unset = disabled)
-  - `OTEL_RESOURCE_ATTRIBUTES` as standard
-- Prometheus:
-  - `OTEL_METRICS_EXPORTER=prometheus`
-  - `OTEL_EXPORTER_PROMETHEUS_HOST` (default `localhost`)
-  - `OTEL_EXPORTER_PROMETHEUS_PORT` (default `9464`)
+The web server listens on port 3000. Prometheus metrics (if enabled) default to port 9464.
 
-## HTTP clients and timeouts
-- Use the module-level `reqwest::Client` singletons (via `lazy_static!`) with user-agent:
-  - Probes: `Prodzilla Probe/1.0`
-  - Alerts: `Prodzilla Alert/1.0`
-- Apply request timeouts (default 10s for probes; alerts use 10s); make timeouts configurable via parameters where relevant.
-- Propagate trace headers on outbound requests.
+## Architecture
 
-## State and concurrency
-- Shared state is in `AppState` guarded by `RwLock`s. Do not hold locks across `.await` points.
-- Clone `Arc<AppState>` when spawning tasks; ensure spawned tasks are `Send`.
-- Scheduling:
-  - Use `tokio::spawn` with the provided `probing_loop` pattern.
-  - Never block the loop; sleep using `tokio::time`.
+Single binary, async Rust application using Axum (web) and Tokio (runtime).
 
-## Web API conventions
-- Routes live under `src/web_server`. Follow existing route structure and response types.
-- Prefer returning `Json<T>` with serializable DTOs from `src/web_server/model.rs`.
-- Avoid panics in handlers. If you touch these, replace `.unwrap()` with graceful error responses and proper status codes.
-- Honor `show_response` query param: if false, strip bodies before returning.
+**Core flow:** `main.rs` → loads YAML config → initializes OTel → spawns per-monitor async scheduling tasks → starts Axum web server.
 
-## Config and YAML
-- Deserialize config with `serde_yaml`; top-level shape is `Config { probes, stories }`.
-- Preserve variable substitution semantics (leading and trailing whitespace is optional and trimmed):
-  - `${{steps.<step-name>.response.body}}` → entire body
-  - `${{steps.<step-name>.response.body.<field>}}` → JSON field
-  - `${{generate.uuid}}` → new UUID
-  - `${{ env.VAR_NAME }}` → environment variable (logs a warning if missing; substitutes empty string)
-- Keep `#[serde(default)]` for optional vectors/fields and `#[serde(skip_serializing_if = "Option::is_none")]` for optional outputs.
+**Key modules:**
 
-## Expectations
-- Supported fields: `StatusCode`, `Body`
-- Supported ops: `Equals`, `NotEquals`, `Contains`, `NotContains`, `Matches` (regex), `IsOneOf` (pipe-separated)
-- Maintain existing evaluation flow; add new ops in `probe::expectations` while keeping pure, testable functions.
+- `src/config.rs` — YAML config loading with validation (unique monitor names, mutual exclusivity of single-step vs multi-step fields)
+- `src/app_state.rs` — Shared state: `RwLock<HashMap<String, Vec<MonitorResult>>>` storing last 100 results per monitor
+- `src/monitor/` — Core monitoring logic:
+  - `model.rs` — Monitor, Step, Expectation, MonitorResult, StepResult types
+  - `schedule.rs` — Scheduling loop, spawns tokio tasks per monitor with initial_delay + interval
+  - `monitor_logic.rs` — `Monitorable` trait, step execution, variable substitution orchestration
+  - `http.rs` — HTTP calls via lazy-static reqwest::Client, OTel trace context propagation
+  - `expectations.rs` — Response validation (Equals, NotEquals, Contains, Matches regex, IsOneOf with `|` separator)
+  - `variables.rs` — `${{ steps.name.response.body.field }}`, `${{ generate.uuid }}`, `${{ env.VAR }}` substitution via regex
+- `src/web_server/` — Axum routes: `GET /monitors`, `GET /monitors/{name}/results`, `GET /monitors/{name}/trigger`, `GET /metrics`
+- `src/alerts/outbound_webhook.rs` — Webhook alerting with auto-detected Slack formatting, body truncation to 500 chars
+- `src/otel/` — OpenTelemetry setup: metrics (OTLP/stdout/Prometheus) and tracing (OTLP/stdout)
+- `src/errors.rs` — Custom error types
+- `src/test_utils.rs` — Builder functions for test monitor construction
 
-## Testing
-- Use `#[tokio::test]` with `wiremock` for HTTP mocking. Avoid real network calls.
-- Keep tests deterministic and fast; prefer short delays in mocks where necessary.
-- Include tracing setup in tests that validate header propagation.
+**Terminology:** "Monitors" is the unified term (replaces older "probes"/"stories" naming). Each monitor has one or more "steps."
 
-## Security and privacy
-- Respect `sensitive: bool` on probes/steps:
-  - Do not log or include raw response bodies in alerts/metrics when sensitive.
-  - Use truncated bodies (<=500 chars) only for non-sensitive responses.
-- Never include secrets in logs; prefer environment variables for secret material.
+## Testing Patterns
 
-## Style and structure
-- Follow module structure: domain logic under `src/probe`, telemetry under `src/otel`, web under `src/web_server`, alerts under `src/alerts`.
-- Keep functions small with early returns; avoid deep nesting.
-- Prefer explicit types in public APIs; keep generics constrained.
-- Minimize clones; where needed, clone only cheap types or use references.
+- Unit tests are co-located in modules (`#[cfg(test)]` blocks)
+- `wiremock` for HTTP server mocking in tests
+- `test_utils.rs` provides builder helpers: `get_simple_monitor()`, `get_default_schedule()`, etc.
+- Integration tests in `src/web_server/tests.rs`
 
-## When making changes
-- Do not introduce new global clients; reuse existing singletons and patterns.
-- Add observability (tracing + metrics) to new flows that perform external IO or meaningful work.
-- Update README and config examples only if you change the public behavior or configuration surface.
-- If adding metrics or attributes, ensure they are consistently attached for probes, stories, and steps.
+## Configuration
 
-## Developer quickstart
-- Build/run:
-  - `cargo run -- --file prodzilla.yml`
-- Format/lint:
-  - `cargo fmt --all`
-  - `cargo clippy -D warnings`
-- Tests:
-  - `cargo test`
+Config file is YAML (`prodzilla.yml` by default). Key structure:
+- Monitors define `url` + `http_method` (single-step) OR `steps` array (multi-step) — never both
+- Variable syntax: `${{ steps.step-name.response.body.fieldName }}` for chaining step outputs
+- OTel configured via standard env vars: `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_METRICS_EXPORTER`, `OTEL_TRACES_EXPORTER`, `RUST_LOG`
 
-## Local observability
-- Traces:
-  - Set `OTEL_TRACES_EXPORTER=stdout` to print spans to stdout locally.
-- Metrics (Prometheus):
-  - Set `OTEL_METRICS_EXPORTER=prometheus`.
-  - Server binds using `OTEL_EXPORTER_PROMETHEUS_HOST` (default `localhost`) and `OTEL_EXPORTER_PROMETHEUS_PORT` (default `9464`).
-  - Scrape path is `/metrics`.
+## CI
 
-## HTTP clients (reuse only)
-- Probes HTTP client (singleton): `src/probe/http_probe.rs` (user-agent `Prodzilla Probe/1.0`).
-- Alerts HTTP client (singleton): `src/alerts/outbound_webhook.rs` (user-agent `Prodzilla Alert/1.0`).
-- These are created via `lazy_static!`; do not introduce new clients—reuse these.
-
-## Timeouts
-- Probes:
-  - Default request timeout: 10s (`DEFAULT_REQUEST_TIMEOUT_SECS` in `src/probe/http_probe.rs`).
-  - Override per-call with `with.timeout_seconds` (`ProbeInputParameters.timeout_seconds`).
-- Alerts:
-  - Webhook timeout: 10s (`REQUEST_TIMEOUT_SECS` in `src/alerts/outbound_webhook.rs`).
-
-## Web API routes (for reference)
-- `/`
-- `/probes`
-- `/probes/:name/results`
-- `/probes/:name/trigger`
-- `/stories`
-- `/stories/:name/results`
-- `/stories/:name/trigger`
-- `/metrics` (only when Prometheus metrics are enabled)
-
-## Config entry points
-- Default config file is `prodzilla.yml`. Override via CLI: `--file <path>`.
-- YAML loading and variable substitution live in `src/config.rs`.
-
-## Telemetry for outbound HTTP
-- Create/enter a span and propagate context headers using `opentelemetry_http::HeaderInjector`.
-- Set attributes for each call: `http.method`, `http.url`, and `http.status_code`.
-- For `sensitive: true`, do not attach response bodies to spans; otherwise, truncate bodies to <= 500 chars.
-
-## Testing tips
-- Use `wiremock` for HTTP; avoid real network calls.
-- Keep tests deterministic with short, bounded delays only where necessary.
-
-## Non-goals
-- Do not introduce a new web framework, DI container, or async runtime.
-- Do not add database persistence without explicit instruction.
-
+- **test.yaml** — `cargo build && cargo test` on push to main and PRs
+- **lint.yaml** — clippy + fmt on all pushes
+- **release.yaml** — GitHub releases on `v[0-9]+.*` tags
+- **docker.yaml** — Multi-platform Docker images (amd64/arm64) to GHCR on tag push
